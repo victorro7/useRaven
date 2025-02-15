@@ -24,6 +24,14 @@ const config: Config = {
           "serif"
          ],
       },
+      colors: {
+        'primary-gradient-start': '#5bd1cb', // Define start color
+        'primary-gradient-end': '#f050f0',   // Define end color
+        'primary': '#5b5bd1cb',              // Define solid color
+      },
+      backgroundImage: { //For the gradient
+        'primary-gradient': 'linear-gradient(to right, var(--tw-gradient-stops))',
+      },
     },
   },
   plugins: [],

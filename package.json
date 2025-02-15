@@ -17,10 +17,12 @@
     "@vercel/analytics": "^1.5.0",
     "ai": "^4.1.36",
     "formidable": "^3.5.2",
+    "framer-motion": "^12.4.3",
     "markdown-to-jsx": "^7.7.3",
     "next": "14.2.11",
     "react": "^18",
     "react-dom": "^18",
+    "react-dropzone": "^14.3.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {

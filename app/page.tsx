@@ -1,138 +1,52 @@
 // app/page.tsx
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
-import { useChat } from '@ai-sdk/react';
+
+import React, { useState, useCallback } from 'react';
 import Navbar from './(components)/Navbar';
-import ChatInput from './(components)/ChatInput';
-import ChatMessage from './(components)/ChatMessage';
-import SuggestionChip from './(components)/SuggestionChip';
-import LogoIcon from './(components)/LogoIcon';
+import VideoUploader from './(components)/VideoUploader/VideoUploader';
+import VideoPlayer from './(components)/VideoPlayer';
+import ClipList from './(components)/ClipList';
 
 export default function Home() {
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, reload } = useChat({
-    api: '/api/chat',
-    // onFinish: (message) => {
-    //     console.log("Finished Message (Client Side):", message);
-    // }
-  });
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
 
-  const [showSuggestions, setShowSuggestions] = useState(true);
-  const [showTitle, setShowTitle] = useState(true);
-  const [hasInteracted, setHasInteracted] = useState(false);
-
-  useEffect(() => {
-    if (!hasInteracted) { // Only affect suggestions if no interaction yet
-      setShowSuggestions(input.length === 0);
-    }
-  }, [input, hasInteracted]); // Add hasInteracted to dependency array
-
-  const handleFormSubmit = useCallback(
-    (event: React.FormEvent, data?: { imageUrl?: string; imageFiles?: File[] }) => {
-      handleSubmit(event, {
-        body: {
-          imageUrl: data?.imageUrl,
-          imageFiles: data?.imageFiles,
-        },
-      });
-
-      if (!hasInteracted) { // First interaction
-        setShowTitle(false);
-        setShowSuggestions(false);
-        setHasInteracted(true); // Set interaction flag
+  const handleVideoUpload = useCallback(
+    (file: File | null, url: string | null) => {
+      if (file) {
+        setVideoFile(file);
+        setVideoUrl(null);
+        setFileUrl(URL.createObjectURL(file));
+      } else if (url) {
+        setVideoUrl(url);
+        setVideoFile(null);
+        setFileUrl(url);
       }
-    },
-    [handleSubmit, messages, input, hasInteracted]
-  );
-
-  // Helper function to set the input value 
-  const setPrompt = (prompt: string) => { 
-    setInput(prompt); 
-  };
-
-  const suggestions = [
-    {
-      icon: <LogoIcon />,
-      title: "Explain something",
-      content: "Understand a topic.",
-      prompt: "Explain [topic] to me."
-    },
-    {
-      icon: <LogoIcon />,
-      title: "Write Code",
-      content: "Get help writing code.",
-      prompt: "Write a [language] function to [do something]."
-    },
-    {
-      icon: <LogoIcon />,
-      title: "Summarize Text",
-      content: "Condense text into a summary.",
-      prompt: "Summarize this text: [text]."
-    },
-    {
-      icon: <LogoIcon />,
-      title: "Plan something",
-      content: "Plan a trip, a party, etc.",
-      prompt: "Help me to plan [event]."
-    },
-  ];
+    }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-[#09090b] text-black">
-      <div className='sticky top-0'><Navbar title="Raven" /></div>
-      {showTitle && (
-        <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <h2 className="text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
-            Welcome to Raven
-          </h2>
-        </div>
-      )}
-      
-      <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
-        <div className="w-full sm:max-w-2xl mx-auto">
-          <div className="flex-grow overflow-y-auto">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                // .find(p => p.type == "text")?.text || ''
-                content={message.parts.find(p => p.type == "text")?.text || ''}
-                imageUrl={message.role === 'user' ? message.content.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
-              />
-            ))}
-          
-            {isLoading && <div className="text-gray-500">Loading...</div>}
-            {error && (
-              <div className="text-red-500">
-                An error occurred. <button onClick={() => reload()}>Retry</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
+    <div className="flex flex-col h-screen bg-[#09090b] text-white">
+      <Navbar title="Klair" />
 
-      {showSuggestions && (
-        <div className="sticky bottom-16 p-2 w-full max-w-2xl mx-auto">
-          <div className="flex justify-center">
-            <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
-              {suggestions.map((suggestion) => (
-                <SuggestionChip
-                  key={suggestion.title}
-                  icon={suggestion.icon}
-                  title={suggestion.title}
-                  content={suggestion.content}
-                  onClick={() => setPrompt(suggestion.prompt)}
-                />
-              ))}
+      <main className="flex-grow overflow-y-auto p-2 sm:p-4 flex justify-center">
+        <div className="w-full max-w-screen-xl mx-auto flex flex-col lg:flex-row gap-4">
+
+          {/* Video Player (Larger) */}
+          <div className="w-full lg:w-2/3 lg:flex lg:flex-col items-center"> {/* Center horizontally */}
+            <VideoPlayer src={fileUrl} />
+            <div className="mt-4 w-full flex justify-center"> {/* Add margin top and center the uploader */}
+              <VideoUploader onVideoUpload={handleVideoUpload} />
             </div>
           </div>
-        </div>
-      )}
 
-      <div className="sticky bottom-0 p-4 shadow-md">
-        <div className="w-full max-w-2xl mx-auto ">
-          <ChatInput value={input} onChange={handleInputChange} onSubmit={handleFormSubmit} />
+          {/* Uploader and Clip List (Stacked on small, side-by-side on large) */}
+          <div className="w-full lg:w-1/3 flex flex-col gap-4">
+            <ClipList />
+          </div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }
