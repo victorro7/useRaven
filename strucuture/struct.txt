@@ -1,0 +1,33 @@
+my-chatbot-app/
+├── app/
+│   ├── (components)/       <-- Reusable UI components (Client Components)
+│   │   ├── ChatInput.tsx
+│   │   ├── ChatMessage.tsx
+│   │   ├── ImagePreview.tsx
+│   │   ├── UploadButton.tsx
+│   │   └── ...
+│   ├── (routes)/           <-- Grouping for Route Handlers
+│   │   ├── api/
+│   │   │   ├── chat/
+│   │   │   │   └── route.ts      <-- API endpoint for chat interactions
+│   │   │   └── upload/
+│   │   │       └── route.ts      <-- API endpoint for image uploads
+│   │   └── dashboard/
+│   │       └── page.tsx
+│   ├── globals.css        <-- Global styles
+│   ├── layout.tsx        <-- Root layout
+│   ├── page.tsx          <-- Main page (likely the chat interface)
+│   └── ...
+├── public/              <-- Static assets (images, etc.)
+│   └── uploads/         <-- Where uploaded images will be stored (temporarily or permanently)
+├── lib/                  <-- Utility functions, helper classes, AI logic
+│   ├── ai.ts             <-- Abstraction for interacting with the AI model
+│   ├── image-utils.ts    <-- Image processing utilities (resizing, validation)
+│   └── ...
+├── types/                  <-- TypeScript type definitions
+│    └── ...
+├── .env.local           <-- Environment variables (API keys, etc.)
+├── next.config.js
+├── package.json
+├── tsconfig.json
+└── ...
