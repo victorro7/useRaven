@@ -1,9 +1,13 @@
 /* eslint-disable @next/next/no-page-custom-font */
 // "use client"
+import {
+  ClerkProvider,
+
+} from '@clerk/nextjs'
 import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-
+import Navbar from './(components)/Navbar';
 import './app.css';
 import { Analytics } from "@vercel/analytics/react"
 
@@ -14,12 +18,14 @@ export const metadata: Metadata = {
   description: 'by KlairVoyant',
 }
 
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
+    <ClerkProvider>
       <html lang="en" className={inter.className}>
         <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -30,9 +36,11 @@ export default function RootLayout({
          <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@285&family=Rubik+Vinyl&display=swap" rel="stylesheet"></link>
         </head>
         <body>
+          <Navbar title='Klair'></Navbar>
           {children}
           <Analytics />
         </body>
       </html>
+    </ClerkProvider>
   )
 }

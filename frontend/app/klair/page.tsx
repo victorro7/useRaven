@@ -1,21 +1,16 @@
+// app/page.tsx
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import Navbar from './(components)/Navbar';
-import VideoUploader from './(components)/VideoUploader/VideoUploader';
-import VideoPlayer from './(components)/VideoPlayer';
-import ClipList from './(components)/ClipList';
-import { useUser } from '@clerk/nextjs'; // Import useUser
-import { useRouter } from 'next/navigation'; // Import useRouter
-import {AuthForm} from './(components)/AuthForm'; // Import AuthForm
+import React, { useState, useCallback } from 'react';
+import Navbar from '../(components)/Navbar';
+import VideoUploader from '../(components)/VideoUploader/VideoUploader';
+import VideoPlayer from '../(components)/VideoPlayer';
+import ClipList from '../(components)/ClipList';
 
 export default function Home() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const { isLoaded, isSignedIn } = useUser(); // Get user status
-  const router = useRouter();
-
 
   const handleVideoUpload = useCallback(async (file: File | null, url: string | null) => {
     try {
@@ -31,7 +26,7 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           console.log('Upload Success (Frontend):', data);
-          setFileUrl(`/uploads/${data.filename}`); // Use relative path
+          setFileUrl(`/uploads/${data.filename}`); // Correct relative URL
           setVideoFile(file);
           setVideoUrl(null);
         } else {
@@ -40,23 +35,22 @@ export default function Home() {
           // Handle error (e.g., show a toast notification)
         }
       } else if (url) {
-        const formData = new FormData();
-        formData.append('url', url);
+          const formData = new FormData();
+          formData.append('url', url);
+          const response = await fetch('http://localhost:8000/api/process-url', {
+            method: 'POST',
+            body: formData,
+          });
 
-        const response = await fetch('http://localhost:8000/api/process-url', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if(response.ok) {
+          if(response.ok){
             const data = await response.json();
-            console.log('URL Process Success (Frontend):', data);
+            console.log("URL Process Success (Frontend)", data)
             setFileUrl(url);
             setVideoUrl(url);
-            setVideoFile(null);
-        } else {
-             const errorData = await response.json();
-            console.error('URL Process Error (Frontend):', errorData)
+            setVideoFile(null)
+          } else {
+            const errorData = await response.json();
+            console.error("URL Process Error (Frontend):", errorData)
           }
       }
     } catch (error) {
@@ -64,18 +58,6 @@ export default function Home() {
       // Handle network errors, etc.
     }
   }, []);
-
-    // Redirect to sign-in page if not signed in
-    useEffect(() => {
-        if (isLoaded && !isSignedIn) {
-            router.push("/sign-in");
-        }
-    }, [isLoaded, isSignedIn, router]);
-
-    if (!isLoaded || !isSignedIn) {
-        return null; // Or a loading indicator, or redirect to a sign-in page
-    }
-
 
   return (
     <div className="flex flex-col h-screen bg-[#09090b] text-white">

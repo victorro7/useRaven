@@ -208,3 +208,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 >>>>>>> 3be13c3 (Initial commit)
+
+# clerk configuration (can include secrets)
+/.clerk/

@@ -1,2 +1,4 @@
 .aider*
 .env
+.env.local
+backend/klair-gcs-credentials.json
