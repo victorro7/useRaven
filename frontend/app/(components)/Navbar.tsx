@@ -1,6 +1,6 @@
 // app/(components)/Navbar.tsx
 import React from 'react';
-import Logo from './LogoIcon';
+import Logo from './icons/LogoIcon';
 import {
   SignInButton,
   SignedIn,
@@ -14,7 +14,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ title }) => {
   return (
-    <header className=" py-4 px-6 shadow-md flex items-center">
+    <header className="text-gray-300 py-4 px-6 shadow-md flex items-center">
       <SignedIn>
         <UserButton />
       </SignedIn>
