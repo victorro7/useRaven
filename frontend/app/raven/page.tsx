@@ -1,4 +1,4 @@
-// app/page.tsx
+// app/raven/page.tsx
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
@@ -6,7 +6,9 @@ import Navbar from '../(components)/Navbar';
 import ChatInput from '../(components)/ChatInput';
 import ChatMessage from '../(components)/ChatMessage';
 import SuggestionChip from '../(components)/SuggestionChip';
-import LogoIcon from '../(components)/LogoIcon';
+import LogoIcon from '../(components)/icons/LogoIcon';
+import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, reload } = useChat({
@@ -19,6 +21,8 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const { isLoaded, isSignedIn } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     if (!hasInteracted) { // Only affect suggestions if no interaction yet
@@ -75,6 +79,16 @@ export default function Home() {
       prompt: "Help me to plan [event]."
     },
   ];
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  if (!isLoaded || !isSignedIn) {
+    return null; // Or loading indicator
+  }
 
   return (
     <div className="flex flex-col h-screen bg-[#09090b] text-black">

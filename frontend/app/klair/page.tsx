@@ -1,4 +1,4 @@
-// app/page.tsx
+// app/klair/page.tsx
 'use client';
 
 import React, { useState, useCallback } from 'react';
@@ -26,7 +26,7 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           console.log('Upload Success (Frontend):', data);
-          setFileUrl(`/uploads/${data.filename}`); // Correct relative URL
+          setFileUrl(`/uploads/${data.filename}`); // Use relative path
           setVideoFile(file);
           setVideoUrl(null);
         } else {
@@ -35,22 +35,23 @@ export default function Home() {
           // Handle error (e.g., show a toast notification)
         }
       } else if (url) {
-          const formData = new FormData();
-          formData.append('url', url);
-          const response = await fetch('http://localhost:8000/api/process-url', {
-            method: 'POST',
-            body: formData,
-          });
+        const formData = new FormData();
+        formData.append('url', url);
 
-          if(response.ok){
+        const response = await fetch('http://localhost:8000/api/process-url', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if(response.ok) {
             const data = await response.json();
-            console.log("URL Process Success (Frontend)", data)
+            console.log('URL Process Success (Frontend):', data);
             setFileUrl(url);
             setVideoUrl(url);
-            setVideoFile(null)
-          } else {
-            const errorData = await response.json();
-            console.error("URL Process Error (Frontend):", errorData)
+            setVideoFile(null);
+        } else {
+             const errorData = await response.json();
+            console.error('URL Process Error (Frontend):', errorData)
           }
       }
     } catch (error) {

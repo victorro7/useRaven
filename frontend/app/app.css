@@ -4,7 +4,7 @@
 
 html,
 body {
-  @apply bg-white dark:bg-white;
+  @apply bg-primary-black dark:bg-white;
   color: rgb(0, 0, 0);
   font-family: 'Geist', serif;
 }

@@ -13,9 +13,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from 'next/navigation';
-import AppleLogo from './AppleLogo';
-import GoogleLogo from './GoogleLogo';
-import GradientButton from './GradientButton';
+import AppleLogo from '../icons/AppleLogo';
+import GoogleLogo from '../icons/GoogleLogo';
+import GradientButton from '../icons/GradientButton';
 
 export function SignupForm({
   className,
