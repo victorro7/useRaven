@@ -43,7 +43,7 @@ export default function ChooseToolPage() {
 
         {/* Klair Button */}
         <Link href="/klair" className="cursor-not-allowed flex-1">
-        <GradientBorderButton disabled className="w-full h-full">
+        <GradientBorderButton className="w-full h-full">
             <div className="flex items-center justify-center w-full h-full px-6 py-4 rounded-lg text-lg sm:text-xl">
               <LogoIcon className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
               <div>

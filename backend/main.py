@@ -1,18 +1,21 @@
-# main.py (FastAPI backend)
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import JSONResponse
-from typing import List, Annotated, Optional
-import uuid
-import shutil
-from pathlib import Path
-from fastapi.middleware.cors import CORSMiddleware # Import
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from google import genai
+import os
+from dotenv import load_dotenv
+import asyncio
+import json
+
+load_dotenv()
+
+client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
 
 app = FastAPI()
 
-# --- CORS Configuration ---
 origins = [
-    "http://localhost:3000",  # Allow requests from your Next.js frontend
-    # Add any other origins you need to allow (e.g., a production URL)
+    "http://localhost:3000",  # Or your frontend URL
 ]
 
 app.add_middleware(
@@ -23,48 +26,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- File Upload ---
-# IMPORTANT: This is now relative to the *Next.js project root*, NOT the FastAPI root.
-UPLOAD_DIR = Path("./public/uploads")
-UPLOAD_DIR.mkdir(exist_ok=True, parents=True) # Create directory
+class Message(BaseModel):
+    role: str
+    parts: list[str]
 
+class ChatRequest(BaseModel):
+    messages: list[Message]
 
-async def save_upload_file(upload_file: UploadFile, destination: Path):
+async def generate_stream(chat_request: ChatRequest):
     try:
-        with destination.open("wb") as buffer:
-            shutil.copyfileobj(upload_file.file, buffer)
-    finally:
-        await upload_file.close()
+        model_name="gemini-2.0-flash"
+        message_list = ""
+        for message in chat_request.messages:
+            for part in message.parts:
+                message_list += f"{message.role.upper()}: {part}\n"
+        message_list += "ASSISTANT:"
 
+        chat = client.chats.create(model=model_name,)
+        response = chat.send_message_stream(message_list)
+    
+        for chunk in response:
+            print(chunk.text)
+            yield json.dumps({"response": chunk.text}) + "\n"
+            await asyncio.sleep(0)
+            # yield f"{chunk.text}"
 
-@app.post("/api/upload")
-async def upload_video(file: UploadFile = File(...)):
-    try:
-        file_extension = file.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
-        file_path = UPLOAD_DIR / unique_filename
-        await save_upload_file(file, file_path)
-
-        # Return the filename (Next.js will construct the URL)
-        return JSONResponse({"message": "File uploaded successfully", "filename": unique_filename})
+        # for chunk in client.models.generate_content_stream(
+        #     model=model_name,
+        #     contents=[message_list]
+        # ):
+        #     print(chunk.text)
+        #     yield json.dumps({"response": chunk.text}) + "\n"
+        #     await asyncio.sleep(0)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error uploading file: {e}")
+        yield json.dumps({"error": str(e)}) + "\n"
 
-
-@app.post("/api/process-url")
-async def process_url(url: str = Form(...)):  # Use Form for consistency
-    try:
-        # For now return success
-        print(f"Received URL: {url}")
-        return JSONResponse({"message": "URL received", "url": url})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing URL: {e}")
-
-
-# Example route, adapt as needed
-@app.get("/")
-async def root():
-    return {"message": "Hello from FastAPI!"}
-
-# --- NO StaticFiles app.mount HERE ---
+@app.post("/chat")
+async def chat_endpoint(chat_request: ChatRequest):
+    return StreamingResponse(generate_stream(chat_request), media_type="text/event-stream")

@@ -1,25 +1,37 @@
 // app/klair/page.tsx
 'use client';
-
 import React, { useState, useCallback } from 'react';
+import { useUser, SignedIn, SignedOut } from '@clerk/clerk-react'; // Import Clerk components
 import Navbar from '../(components)/Navbar';
 import VideoUploader from '../(components)/VideoUploader/VideoUploader';
 import VideoPlayer from '../(components)/VideoPlayer';
 import ClipList from '../(components)/ClipList';
 
 export default function Home() {
+  const { user, isLoaded } = useUser(); // Get user object and loading state
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   const handleVideoUpload = useCallback(async (file: File | null, url: string | null) => {
+    if (!user) { // Check if user is signed in
+      console.error("User not signed in.");
+      return;
+    }
+
     try {
+      const token = await user.emailAddresses; // Get the Clerk JWT
+      console.log(token)
+
       if (file) {
         const formData = new FormData();
         formData.append('file', file);
 
         const response = await fetch('http://localhost:8000/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`, // Add Authorization header with token
+          },
           body: formData,
         });
 
