@@ -9,6 +9,7 @@ import SuggestionChip from '../(components)/SuggestionChip';
 import LogoIcon from '../(components)/icons/LogoIcon';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
+import Spinner from '../(components)/icons/Spinner';
 
 export default function Home() {
   const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, reload } = useChat({
@@ -86,13 +87,15 @@ export default function Home() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  if (!isLoaded || !isSignedIn) {
-    return null; // Or loading indicator
-  }
+  {(!isLoaded || !isSignedIn) && (
+    <div className="flex justify-center items-center h-screen">
+      <Spinner size="lg" color="white" />
+    </div>
+  )}
 
   return (
     <div className="flex flex-col h-screen bg-[#09090b] text-black">
-      <div className='sticky top-0'><Navbar title="Raven" /></div>
+      <Navbar title="Raven" />
       {showTitle && (
         <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <h2 className="text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
