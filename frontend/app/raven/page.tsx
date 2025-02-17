@@ -1,4 +1,3 @@
-// app/raven/page.tsx
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../(components)/Navbar';
@@ -15,9 +14,9 @@ interface ChatMessagePart {
 }
 
 interface FormattedChatMessage {
-  role: string;
+  role: "user" | "data" | "assistant" | "system";
   parts: ChatMessagePart[];
-  id: string; // Add an ID
+  id: string;
 }
 
 export default function Home() {
@@ -30,25 +29,27 @@ export default function Home() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const { isLoaded, isSignedIn } = useUser();
   const router = useRouter();
-    const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null); // Track the ID of the streaming message
-
+  const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hasInteracted) {
       setShowSuggestions(input.length === 0);
+    } else {
+      setShowSuggestions(false);
     }
   }, [input, hasInteracted]);
 
-const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { imageUrl?: string; imageFiles?: File[] }) => {
+  const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
     setIsLoading(true);
     setError(null);
+    setShowSuggestions(false); // Hide suggestions on submit
 
     const newUserMessage: FormattedChatMessage = {
       role: 'user',
       parts: [{ text: input }],
-      id: `user-${Date.now()}`, // Generate a unique ID
+      id: `user-${Date.now()}`,
     };
 
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
@@ -61,7 +62,7 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({role: 'user', parts: [input]}),
+          messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({ role: 'user', parts: [input] }),
         }),
       });
 
@@ -74,8 +75,9 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
       if (!reader) {
         throw new Error("No body in response");
       }
-      const newAssistantMessageId = `assistant-${Date.now()}`; // Generate unique ID at the *start*
-        setStreamedMessageId(newAssistantMessageId); //store current streaming message
+
+      const newAssistantMessageId = `assistant-${Date.now()}`;
+      setStreamedMessageId(newAssistantMessageId);
 
       let partialResponse = "";
       while (true) {
@@ -99,32 +101,24 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
                 throw new Error(jsonChunk.error);
               }
 
-                if (jsonChunk.response) {
+              if (jsonChunk.response) {
                 setMessages((prevMessages) => {
                   const existingAssistantMessageIndex = prevMessages.findIndex(
                     (msg) => msg.id === newAssistantMessageId
                   );
 
                   if (existingAssistantMessageIndex !== -1) {
-                    // Update existing message
                     const updatedMessages = [...prevMessages];
                     updatedMessages[existingAssistantMessageIndex] = {
                       ...updatedMessages[existingAssistantMessageIndex],
-                      parts: [
-                        {
-                          text:
-                            updatedMessages[existingAssistantMessageIndex].parts[0].text +
-                            jsonChunk.response,
-                        },
-                      ],
+                      parts: [{ text: updatedMessages[existingAssistantMessageIndex].parts[0].text + jsonChunk.response }],
                     };
                     return updatedMessages;
                   } else {
-                    // Create new message
                     const newAssistantMessage: FormattedChatMessage = {
                       role: 'assistant',
                       parts: [{ text: jsonChunk.response }],
-                      id: newAssistantMessageId, // Use the generated ID
+                      id: newAssistantMessageId,
                     };
                     return [...prevMessages, newAssistantMessage];
                   }
@@ -140,70 +134,46 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
       setError(err.message);
     } finally {
       setIsLoading(false);
-      setStreamedMessageId(null); // Reset streamed ID
       if (!hasInteracted) {
-        setShowTitle(false);
-        setShowSuggestions(false);
-        setHasInteracted(true);
+          setShowTitle(false);
+          setTimeout(() => {
+              setShowSuggestions(false);
+          }, 0);
+          setHasInteracted(true);
       }
-    }
-  }, [messages, input, hasInteracted]); // Removed streamedMessageId from dependencies
+  }
+}, [messages, input, hasInteracted]);
 
-
-    const setPrompt = (prompt: string) => {
-        setInput(prompt);
-    };
+  const setPrompt = (prompt: string) => {
+    setInput(prompt);
+    setShowSuggestions(false);
+  };
 
   const suggestions = [
-
     {
-
       icon: <LogoIcon />,
-
       title: "Explain something",
-
       content: "Understand a topic.",
-
       prompt: "Explain [topic] to me."
-
     },
-
     {
-
       icon: <LogoIcon />,
-
       title: "Write Code",
-
       content: "Get help writing code.",
-
       prompt: "Write a [language] function to [do something]."
-
     },
-
     {
-
       icon: <LogoIcon />,
-
       title: "Summarize Text",
-
       content: "Condense text into a summary.",
-
       prompt: "Summarize this text: [text]."
-
     },
-
     {
-
       icon: <LogoIcon />,
-
       title: "Plan something",
-
       content: "Plan a trip, a party, etc.",
-
       prompt: "Help me to plan [event]."
-
     },
-
   ];
 
   useEffect(() => {
@@ -219,10 +189,11 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
       </div>
     );
   }
+
   return (
     <div className="flex flex-col h-screen bg-[#09090b] text-black">
       <Navbar title="Raven" />
-      {showTitle && (
+      {showTitle && !isLoading && (
         <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <h2 className="text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
             Welcome to Raven
@@ -233,30 +204,21 @@ const handleFormSubmit = useCallback(async (event: React.FormEvent, data?: { ima
       <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
         <div className="w-full sm:max-w-2xl mx-auto">
           <div className="flex-grow overflow-y-auto">
-           {messages.map((message) => (
+            {messages.map((message) => (
               <ChatMessage
-                key={message.id} // Use the ID as the key
+                key={message.id}
                 role={message.role}
                 content={message.parts.map((p) => p.text).join('')}
-                imageUrl={
-                  message.role === 'user'
-                    ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0]
-                    : undefined
-                }
+                imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
               />
             ))}
-
             {isLoading && <div className="text-gray-500">Loading...</div>}
-            {error && (
-              <div className="text-red-500">
-                An error occurred.
-              </div>
-            )}
+            {error && <div className="text-red-500">An error occurred.</div>}
           </div>
         </div>
       </main>
 
-      {showSuggestions && (
+      {showSuggestions && !isLoading && (
         <div className="sticky bottom-16 p-2 w-full max-w-2xl mx-auto">
           <div className="flex justify-center">
             <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">

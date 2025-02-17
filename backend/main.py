@@ -35,7 +35,7 @@ class ChatRequest(BaseModel):
 
 async def generate_stream(chat_request: ChatRequest):
     try:
-        model_name="gemini-2.0-flash"
+        model_name="gemini-2.0-pro-exp-02-05"
         message_list = ""
         for message in chat_request.messages:
             for part in message.parts:
@@ -44,20 +44,11 @@ async def generate_stream(chat_request: ChatRequest):
 
         chat = client.chats.create(model=model_name,)
         response = chat.send_message_stream(message_list)
-    
+
         for chunk in response:
             print(chunk.text)
             yield json.dumps({"response": chunk.text}) + "\n"
             await asyncio.sleep(0)
-            # yield f"{chunk.text}"
-
-        # for chunk in client.models.generate_content_stream(
-        #     model=model_name,
-        #     contents=[message_list]
-        # ):
-        #     print(chunk.text)
-        #     yield json.dumps({"response": chunk.text}) + "\n"
-        #     await asyncio.sleep(0)
 
     except Exception as e:
         yield json.dumps({"error": str(e)}) + "\n"
