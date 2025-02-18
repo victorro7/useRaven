@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
-import { UserButton } from "@clerk/nextjs";
 import LogoIcon from './icons/LogoIcon';
 
 interface NavbarProps {
@@ -37,11 +36,6 @@ const Navbar: React.FC<NavbarProps> = ({ title }) => {
       <div className="container mx-auto flex items-center justify-between">
         {/*  Left Side: UserButton, Logo, and Title */}
         <div className="flex items-center">
-        {isLoaded && isSignedIn && (
-            <div className="mr-4">
-              <UserButton/>
-            </div>
-          )}
           <LogoIcon className="h-8 w-8 text-primary mr-2" />
           <h1 className="text-3xl font-semibold tracking-wide">{title}</h1>
         </div>
