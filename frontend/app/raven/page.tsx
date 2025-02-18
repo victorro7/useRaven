@@ -48,8 +48,8 @@ export default function Home() {
     }, [hasInteracted, input])
 
     const setPrompt = (prompt: string) => {
-        setInput(prompt);
-        setShowSuggestions(false);
+      setInput(prompt);
+      setShowSuggestions(false);
     };
 
     const suggestions = [
@@ -65,18 +65,28 @@ export default function Home() {
       }
     }, [isLoaded, isSignedIn, router]);
 
-    useEffect(() => {
-        if(isLoading) {
-            setShowTitle(false)
-        }
-    }, [isLoading])
+    // useEffect(() => {
+    //     if(isLoading) {
+    //         setShowTitle(false)
+    //     }
+    // }, [isLoading])
 
+    // useEffect(() => {
+    //   if (!isLoading && hasInteracted) {
+    //     setShowSuggestions(false);
+    //     setShowTitle(false);
+    //   }
+    // }, [isLoading, hasInteracted]);
+
+    // Show title on initial load and new chat
     useEffect(() => {
-    if (!isLoading && hasInteracted) {
-      setShowSuggestions(false);
-      setShowTitle(false);
-    }
-  }, [isLoading, hasInteracted]);
+      setShowTitle(!isLoading && (messages.length === 0));
+    }, [isLoading, messages, input]);
+
+    // Show suggestions on initial load and new chat when input is empty
+    useEffect(() => {
+      setShowSuggestions(!isLoading && (messages.length === 0 && input.length === 0));
+    }, [isLoading, messages, input]);
 
   if (!isLoaded || !isSignedIn) {
     return (

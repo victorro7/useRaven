@@ -5,43 +5,34 @@ interface ChatMessagePart {
   text: string;
 }
 
-export interface FormattedChatMessage { // Export this interface
+export interface FormattedChatMessage {
   role: "user" | "data" | "assistant" | "system";
   parts: ChatMessagePart[];
   id: string;
 }
-const generateId = (type: "user" | "assistant") => `${type}-${Date.now()}`; //utility
+const generateId = (type: "user" | "assistant") => `${type}-${Date.now()}`;
 
 export const useChatLogic = () => {
-    const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
-    const [selectedChatId, setSelectedChatId] = useState<string | null>(null); // New state
-    const [chats, setChats] = useState<any[]>([]); //Placeholder
+  const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [chats, setChats] = useState<any[]>([]);
+  const [abortController, setAbortController] = useState<AbortController | null>(null); // Store AbortController
 
-    const loadChat = useCallback(async (chatId: string) => {
-        setSelectedChatId(chatId);
-            //TODO Implement
-        // Fetch messages for chatId from backend
-        // Update messages state
 
-    }, []);
-
-    const createNewChat = useCallback(() => {
-        setSelectedChatId(null);
-        setMessages([]);
-        //TODO Implement
-        // Potentially create a new chat in the backend
-
-    }, [setMessages]);
-
-    const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
+  const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
     setIsLoading(true);
     setError(null);
+
+     // Abort any existing requests
+    if (abortController) {
+        abortController.abort();
+    }
 
     const newUserMessage: FormattedChatMessage = {
       role: 'user',
@@ -52,6 +43,10 @@ export const useChatLogic = () => {
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setInput('');
 
+    // Create a *new* AbortController for this request
+    const newAbortController = new AbortController();
+    setAbortController(newAbortController); // Store for later
+
     try {
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
@@ -61,6 +56,7 @@ export const useChatLogic = () => {
         body: JSON.stringify({
           messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({ role: 'user', parts: [input] }),
         }),
+        signal: newAbortController.signal, // Pass the signal to fetch
       });
 
       if (!response.ok) {
@@ -82,6 +78,10 @@ export const useChatLogic = () => {
 
         if (done) {
           break;
+        }
+        //check if aborted
+        if (newAbortController.signal.aborted) {
+            break;
         }
 
         const chunk = new TextDecoder().decode(value);
@@ -122,18 +122,49 @@ export const useChatLogic = () => {
                 });
               }
             } catch (parseError) {
+              // Ignore abort errors, handle others
+                if (parseError instanceof DOMException && parseError.name === 'AbortError') {
+                    return; // Exit the callback if aborted
+                }
               console.error("Error parsing JSON:", parseError, line);
             }
           }
         }
       }
     } catch (err: any) {
+      // Catch and ignore abort errors at the top level too
+        if (err instanceof DOMException && err.name === 'AbortError') {
+            console.log("Fetch aborted"); // Log the abort
+            return; // Don't set an error
+        }
       setError(err.message);
     } finally {
       setIsLoading(false);
       setStreamedMessageId(null);
-    }
-  }, [messages, input]);
+      setAbortController(null); // Reset the controller
 
-    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats };
+    }
+  }, [messages, input, abortController]); // Add abortController to dependencies
+
+
+  const createNewChat = useCallback(() => {
+    //abort any ongoing requests
+    if (abortController) {
+        abortController.abort();
+    }
+    setSelectedChatId(null);
+    setMessages([]);
+    setInput('');
+    setAbortController(null); // Reset controller on new chat
+
+  }, [setSelectedChatId, setMessages, setInput, abortController]); // Add to dependencies
+
+    const loadChat = useCallback(async (chatId: string) => {
+        setSelectedChatId(chatId);
+         //TODO Implement
+        // Fetch messages for chatId from backend
+        // Update messages state
+
+    }, []);
+  return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats };
 };

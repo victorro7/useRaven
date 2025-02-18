@@ -1,12 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
+from uuid import uuid4
 from google import genai
 import os
 from dotenv import load_dotenv
 import asyncio
 import json
+import httpx
+from clerk_backend_api import Clerk
+from clerk_backend_api.jwks_helpers import authenticate_request, AuthenticateRequestOptions
 
 load_dotenv()
 
@@ -26,12 +31,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class ChatCreateRequest(BaseModel): #for later, once backend is required
+    user_id: str  # You'll get this from Clerk
+    title: Optional[str] = None  # Optional initial title
+
+class ChatCreateResponse(BaseModel): #for later
+    chat_id: str
+
+@app.post("/api/chats/create", response_model=ChatCreateResponse) #for later
+async def create_chat(chat_create_request: ChatCreateRequest):
+    # 1. Generate a unique chat ID (e.g., using uuid4)
+    chat_id = str(uuid4())
+
+    # 2. Store the new chat in your database
+    #    (You'll need to adapt this to your specific database)
+    #    Example (pseudocode):
+    #    new_chat = {
+    #        "chat_id": chat_id,
+    #        "user_id": chat_create_request.user_id,
+    #        "title": chat_create_request.title or f"Chat {chat_id[:8]}", // Default title
+    #        "messages": [],  // Start with an empty message list
+    #    }
+    #    your_database.chats.insert_one(new_chat)
+
+    # 3. Return the chat ID
+    return ChatCreateResponse(chat_id=chat_id)
+
 class Message(BaseModel):
     role: str
     parts: list[str]
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+
+def is_signed_in(request: httpx.Request):
+    sdk = Clerk(bearer_auth=os.getenv('CLERK_SECRET_KEY'))
+    request_state = sdk.authenticate_request(
+        request,
+        AuthenticateRequestOptions(
+            authorized_parties=origins,
+        )
+    )
+    return request_state.is_signed_in
 
 async def generate_stream(chat_request: ChatRequest):
     try:
