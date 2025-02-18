@@ -1,6 +1,6 @@
 // app/(components)/GradientButton.tsx
 import React from 'react';
-import { Button } from "@/components/ui/button"
+import { Button } from "@/app/(components)/ui/button"
 
 interface GradientButtonProps {
   children: React.ReactNode;

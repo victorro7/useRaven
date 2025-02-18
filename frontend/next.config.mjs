@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    domains: ['img.clerk.com'], // Add this line
+  },
   webpack(config) {
       config.module.rules.push({
           test: /\.svg$/i,

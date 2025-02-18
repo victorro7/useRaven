@@ -13,13 +13,31 @@ export interface FormattedChatMessage { // Export this interface
 const generateId = (type: "user" | "assistant") => `${type}-${Date.now()}`; //utility
 
 export const useChatLogic = () => {
-  const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
+    const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
+    const [selectedChatId, setSelectedChatId] = useState<string | null>(null); // New state
+    const [chats, setChats] = useState<any[]>([]); //Placeholder
 
-  const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
+    const loadChat = useCallback(async (chatId: string) => {
+        setSelectedChatId(chatId);
+            //TODO Implement
+        // Fetch messages for chatId from backend
+        // Update messages state
+
+    }, []);
+
+    const createNewChat = useCallback(() => {
+        setSelectedChatId(null);
+        setMessages([]);
+        //TODO Implement
+        // Potentially create a new chat in the backend
+
+    }, [setMessages]);
+
+    const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
     setIsLoading(true);
@@ -117,5 +135,5 @@ export const useChatLogic = () => {
     }
   }, [messages, input]);
 
-    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages };
+    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats };
 };

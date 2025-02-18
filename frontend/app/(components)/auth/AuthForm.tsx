@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSignIn } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/app/(components)/ui/button";
 import GoogleLogo from '../icons/GoogleLogo';
 import { useRouter } from 'next/navigation';
 
