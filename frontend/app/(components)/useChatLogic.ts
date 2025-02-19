@@ -1,16 +1,18 @@
 // app/(components)/useChatLogic.ts
 import { useState, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs'; // Import useAuth
 
 interface ChatMessagePart {
   text: string;
 }
 
 export interface FormattedChatMessage {
-  role: "user" | "data" | "assistant" | "system";
+  role: "user" | "data" | "assistant" | "system"; // Keep all roles
   parts: ChatMessagePart[];
   id: string;
 }
-const generateId = (type: "user" | "assistant") => `${type}-${Date.now()}`;
+
+const generateId = (type: "user" | "assistant" | "message") => `${type}-${Date.now()}`;
 
 export const useChatLogic = () => {
   const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
@@ -19,9 +21,9 @@ export const useChatLogic = () => {
   const [error, setError] = useState<string | null>(null);
   const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [chats, setChats] = useState<any[]>([]);
-  const [abortController, setAbortController] = useState<AbortController | null>(null); // Store AbortController
-
+  const [chats, setChats] = useState<any[]>([]);  // Keep this for the chat list
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const { sessionId, getToken } = useAuth(); // Get the getToken function from Clerk
 
   const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -29,9 +31,8 @@ export const useChatLogic = () => {
     setIsLoading(true);
     setError(null);
 
-     // Abort any existing requests
     if (abortController) {
-        abortController.abort();
+      abortController.abort();
     }
 
     const newUserMessage: FormattedChatMessage = {
@@ -43,30 +44,37 @@ export const useChatLogic = () => {
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setInput('');
 
-    // Create a *new* AbortController for this request
     const newAbortController = new AbortController();
-    setAbortController(newAbortController); // Store for later
+    setAbortController(newAbortController);
 
     try {
+      const token = await getToken({ template: 'kvbackend' }); //  Get the token
+      console.log(token);
+      console.log(sessionId)
+      if (!token) {
+        throw new Error("Authentication token not available."); // Handle missing token
+      }
+
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Include the token
         },
         body: JSON.stringify({
-          messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({ role: 'user', parts: [input] }),
+          messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({ role: 'user', parts: [input, `-${selectedChatId}`] }), // Include selectedChatId
         }),
-        signal: newAbortController.signal, // Pass the signal to fetch
+        signal: newAbortController.signal,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || response.statusText);
+        throw new Error(errorData.detail || response.statusText); //  Handle backend errors
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
-        throw new Error("No body in response");
+        throw new Error("No response body from server.");
       }
 
       const newAssistantMessageId = generateId("assistant");
@@ -79,9 +87,9 @@ export const useChatLogic = () => {
         if (done) {
           break;
         }
-        //check if aborted
+
         if (newAbortController.signal.aborted) {
-            break;
+            break; // Exit if aborted
         }
 
         const chunk = new TextDecoder().decode(value);
@@ -95,7 +103,7 @@ export const useChatLogic = () => {
             try {
               const jsonChunk = JSON.parse(line);
               if (jsonChunk.error) {
-                throw new Error(jsonChunk.error);
+                throw new Error(jsonChunk.error);  // Handle errors from the stream
               }
 
               if (jsonChunk.response) {
@@ -122,49 +130,131 @@ export const useChatLogic = () => {
                 });
               }
             } catch (parseError) {
-              // Ignore abort errors, handle others
                 if (parseError instanceof DOMException && parseError.name === 'AbortError') {
-                    return; // Exit the callback if aborted
+                    return; // Expected, do nothing
                 }
-              console.error("Error parsing JSON:", parseError, line);
+                console.error("Error parsing JSON:", parseError, line);
+                setError("Error processing response from server."); // Set a user-friendly error
             }
           }
         }
       }
     } catch (err: any) {
-      // Catch and ignore abort errors at the top level too
         if (err instanceof DOMException && err.name === 'AbortError') {
-            console.log("Fetch aborted"); // Log the abort
-            return; // Don't set an error
+            console.log("Fetch aborted"); // Expected, do nothing.
+        } else {
+            setError(err.message || "An unexpected error occurred."); // Set error message
         }
-      setError(err.message);
     } finally {
       setIsLoading(false);
       setStreamedMessageId(null);
-      setAbortController(null); // Reset the controller
-
+      setAbortController(null);
     }
-  }, [messages, input, abortController]); // Add abortController to dependencies
+  }, [messages, input, abortController, selectedChatId, getToken]); // Include getToken
 
 
-  const createNewChat = useCallback(() => {
-    //abort any ongoing requests
+  const createNewChat = useCallback(async () => {
     if (abortController) {
-        abortController.abort();
+      abortController.abort();
     }
     setSelectedChatId(null);
     setMessages([]);
     setInput('');
-    setAbortController(null); // Reset controller on new chat
+    setAbortController(null);
 
-  }, [setSelectedChatId, setMessages, setInput, abortController]); // Add to dependencies
+
+    try {
+      const token = await getToken(); // Get token
+      
+      if(!token){
+        throw new Error("Not authenticated")
+      }
+      const response = await fetch('http://localhost:8000/api/chats/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Include token
+        },
+        body: JSON.stringify({
+          user_id: "PLACEHOLDER", // This is now handled on the backend.  Remove from here.
+          title: null, // Optional title
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || response.statusText);
+      }
+
+      const data: { chat_id: string } = await response.json();
+      setSelectedChatId(data.chat_id); // Set the selected chat ID
+
+    } catch (error: any) {
+      setError(error.message);
+    }
+  }, [getToken, setSelectedChatId, setMessages, setInput, abortController]); // Include getToken
 
     const loadChat = useCallback(async (chatId: string) => {
+        if (abortController) {
+            abortController.abort();
+        }
         setSelectedChatId(chatId);
-         //TODO Implement
-        // Fetch messages for chatId from backend
-        // Update messages state
+        setMessages([]); // Clear existing messages
+        try {
+            const token = await getToken(); // <--- Get token
+            
+            if(!token) {
+                throw new Error("Not authenticated.");
+            }
+            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`,{
+              headers: {
+                    'Authorization': `Bearer ${token}` // Include the token
+                }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || response.statusText);
+            }
+            const data = await response.json();
 
-    }, []);
-  return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats };
+            // Convert timestamps back to Date objects
+            const formattedMessages = data.map((message: any) => ({
+                ...message,
+                timestamp: new Date(message.timestamp * 1000), // Convert to milliseconds from seconds
+                parts: [{text: message.content}]
+            }));
+            setMessages(formattedMessages);
+            setAbortController(null);
+        } catch (error: any) {
+            setError(error.message);
+        }
+    }, [setSelectedChatId, setMessages, abortController, getToken]);
+
+    const fetchChats = useCallback(async () => {
+    try {
+        const token = await getToken(); // Get token
+        
+        if(!token) {
+            throw new Error("Not authenticated")
+        }
+        const response = await fetch('http://localhost:8000/api/chats', {
+        headers: {
+            'Authorization': `Bearer ${token}`, // Include token
+        },
+        });
+        console.log(Response.json({ token }))
+        if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || response.statusText);
+        }
+        const data = await response.json();
+        setChats(data);
+    } catch (error: any) {
+        console.error("Error fetching chats:", error);
+        setError("Failed to load chats."); // Set a user-friendly error
+    }
+    }, [setChats, getToken]); // Include getToken
+
+
+  return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats };
 };
