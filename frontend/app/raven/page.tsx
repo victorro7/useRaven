@@ -27,7 +27,7 @@ export default function Home() {
         if (isSignedIn) { // Fetch chats only if signed in
           //TODO: Implement fetch chats
           // Example:
-          const response = await fetch('/api/chats'); // Your API endpoint
+          const response = await fetch('http://localhost:8000/api/chats'); // Your API endpoint
           if (response.ok) {
             const data = await response.json();
             setChats(data); // Assuming your API returns an array of chats

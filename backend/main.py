@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, status
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -8,16 +8,17 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import json
-import asyncpg  # Use asyncpg directly
+import asyncpg
 import httpx
 from clerk_backend_api import Clerk
-from clerk_backend_api.jwks_helpers import authenticate_request, AuthenticateRequestOptions
+from clerk_backend_api.jwks_helpers import AuthenticateRequestOptions
+
 
 load_dotenv()
 
 app = FastAPI()
 
-# --- CORS (Keep this) ---
+# --- CORS ---
 origins = [
     "http://localhost:3000",  # Or your frontend URL
 ]
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 # --- CORS ---
 
+
 # --- Pydantic Models ---
 class Message(BaseModel):
     role: str
@@ -38,9 +40,12 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+    chatId: Optional[str] = None
+
 class ChatCreateRequest(BaseModel):  # For creating new chats
     user_id: str  # Get from Clerk
     title: Optional[str] = None
+
 class ChatCreateResponse(BaseModel):
     chat_id: str
 
@@ -104,55 +109,57 @@ async def get_db():
             await app.state.db_pool.release(conn)
 # --- Dependency for getting a database connection---
 
-def is_signed_in(request: httpx.Request):
+# --- Authentication (Clerk) - Using clerk-backend-api ---
+def get_clerk_request(request: httpx.Request):
     sdk = Clerk(bearer_auth=os.getenv('CLERK_SECRET_KEY'))
     request_state = sdk.authenticate_request(
-        request,
+    request,
         AuthenticateRequestOptions(
-            authorized_parties=origins,
-        )
+        authorized_parties=origins,
     )
-    print(request_state.is_signed_in)
-    return request_state.is_signed_in
+    )
+    return request_state
 
-# --- Helper function for auth (Placeholder - NEEDS CLERK INTEGRATION) ---
 async def get_current_user(request: Request):
-    valid_user = is_signed_in(request)
-
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        token = auth_header.split(" ")[1]  # CORRECT: Extract token
-        print(token)
-        clerk_client = Clerk(bearer_auth=os.getenv('CLERK_SECRET_KEY'))
-        # clerk_client = Clerk(api_key=os.environ["CLERK_SECRET_KEY"])
-        # print(clerk_client.sessions.get(session_id="sess_2tFTSCk2HLUDrCykW0AZinB2h1q"))
-        # jwt_session = clerk_client.sessions.verify_session(token)
-        return "user_2t9aAwiUsishz1NuSJi13WPH9IK"
-        # return jwt_session.user_id  # CORRECT: Get user_id
-    
+        request_state = get_clerk_request(request)
+
+        if request_state.is_signed_in:
+            # print(request_state.payload['sub'])
+            return request_state.payload['sub']
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
     except Exception as e:
         print(f"Authentication error: {e}") #log errors
         raise HTTPException(
-            status_code=333,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-# --- API Endpoints ---
+# --- Authentication (Clerk) - Using clerk-backend-api ---
 
+# --- API Endpoints ---
 @app.post("/api/chats/create", response_model=ChatCreateResponse)
 async def create_chat(chat_create_request: ChatCreateRequest, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
     chat_id = str(uuid4())
     try:
+        # Check if the user exists
+        user_exists = await db.fetchrow("SELECT 1 FROM users WHERE id = $1", user_id)
+        if not user_exists:
+            raise HTTPException(status_code=400, detail="User not found")  # Or 404 if appropriate
+
         await db.execute('''
             INSERT INTO raven_chats (id, user_id, title, created_at)
             VALUES ($1, $2, $3, NOW())
         ''', chat_id, user_id, chat_create_request.title or f"Chat {chat_id[:8]}")
         return ChatCreateResponse(chat_id=chat_id)
     except Exception as e:
-        print(f"Database error: {e}")  # More specific error logging
+        print(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create chat: {e}")
 
 @app.get("/api/chats", response_model=List[Chat])
@@ -200,7 +207,7 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
 
 async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: str):
     try:
-        model_name = "gemini-2.0-flash"
+        model_name = "gemini-2.0-pro-exp-02-05"
         message_list = ""
         for message in chat_request.messages:
             for part in message.parts:
@@ -225,9 +232,17 @@ async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: 
 
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+    chat_id = chat_request.chatId
+    print(chat_id)
     if(len(chat_request.messages) > 1):
-        chat_id = chat_request.messages[0].parts[0].split('-')[1]
-        print(chat_id)
+        try:
+            # Attempt to extract chat_id from the last message
+            print(chat_request.messages)
+            # chat_id = chat_request.messages[-1].parts[0].split('-')[1]
+            chat_id=chat_id
+        except (IndexError, AttributeError) as e:
+            print(f"Error extracting chat ID: {e}")
+            raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
     else:
         chat_creation_request = ChatCreateRequest(user_id=user_id)
         created_chat = await create_chat(chat_creation_request, user_id, db)
@@ -240,9 +255,33 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
         await db.execute('''
             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
             VALUES ($1, $2, $3, $4, $5, NOW())
-        ''', message_id, chat_id, user_id, last_message.role, last_message.parts[0])  # Removed extra comma
+        ''', message_id, chat_id, user_id, last_message.role, last_message.parts[0])
 
         return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
     except Exception as e:
-        print(f"Database error in chat endpoint: {e}") #more specific error
+        print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
+
+# @app.post("/chat")
+# async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+#     chat_id = chat_request.chatId  # Get chatId directly from the request body
+
+#     if not chat_id:  # If it's a new chat (no chatId provided)
+#         chat_creation_request = ChatCreateRequest(user_id=user_id)
+#         created_chat = await create_chat(chat_creation_request, user_id, db)
+#         chat_id = created_chat.chat_id
+#     # else the chat_id is already set.
+
+#     last_message = chat_request.messages[-1]
+#     message_id = str(uuid4())
+
+#     try:
+#         await db.execute('''
+#             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
+#             VALUES ($1, $2, $3, $4, $5, NOW())
+#         ''', message_id, chat_id, user_id, last_message.role, last_message.parts[0].text) # Insert the text of the message
+
+#         return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
+#     except Exception as e:
+#         print(f"Database error in chat endpoint: {e}")
+#         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")

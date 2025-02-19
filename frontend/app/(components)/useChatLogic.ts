@@ -7,7 +7,7 @@ interface ChatMessagePart {
 }
 
 export interface FormattedChatMessage {
-  role: "user" | "data" | "assistant" | "system"; // Keep all roles
+  role: "user" | "data" | "assistant" | "system";
   parts: ChatMessagePart[];
   id: string;
 }
@@ -21,18 +21,19 @@ export const useChatLogic = () => {
   const [error, setError] = useState<string | null>(null);
   const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [chats, setChats] = useState<any[]>([]);  // Keep this for the chat list
+  const [chats, setChats] = useState<any[]>([]);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const { userId, sessionId, getToken } = useAuth(); // Get the getToken function from Clerk
+  const { getToken } = useAuth(); // Get the getToken function from Clerk
 
-  const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
+    const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
     setIsLoading(true);
     setError(null);
 
+        // Abort any existing requests
     if (abortController) {
-      abortController.abort();
+        abortController.abort();
     }
 
     const newUserMessage: FormattedChatMessage = {
@@ -44,17 +45,24 @@ export const useChatLogic = () => {
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setInput('');
 
+    // Create a *new* AbortController for this request
     const newAbortController = new AbortController();
-    setAbortController(newAbortController);
+    setAbortController(newAbortController); // Store for later
 
     try {
-      const token = await getToken({ template: 'kvbackend' }); //  Get the token
-      console.log(token);
-      console.log(sessionId)
-      console.log(userId)
-      if (!token) {
-        throw new Error("Authentication token not available."); // Handle missing token
-      }
+        const token = await getToken({ template: "kvbackend" }); //  Get the token
+        if(!token) {
+            throw new Error("Authentication token not available."); // Handle missing token
+        }
+
+        // Send the selectedChatId in the request body, *not* appended to the input
+        const requestBody = {
+            messages: [...messages, newUserMessage].map(msg => ({
+                role: msg.role,
+                parts: msg.parts.map(part => part.text)
+            })),
+            chatId: selectedChatId, // Send chatId separately
+        };
 
       const response = await fetch('http://localhost:8000/chat', {
         method: 'POST',
@@ -62,10 +70,8 @@ export const useChatLogic = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`, // Include the token
         },
-        body: JSON.stringify({
-          messages: messages.map(msg => ({ role: msg.role, parts: msg.parts.map(part => part.text) })).concat({ role: 'user', parts: [input, `-${selectedChatId}`] }), // Include selectedChatId
-        }),
-        signal: newAbortController.signal,
+        body: JSON.stringify(requestBody), // Use the constructed body
+        signal: newAbortController.signal, // Pass the signal to fetch
       });
 
       if (!response.ok) {
@@ -149,14 +155,16 @@ export const useChatLogic = () => {
     } finally {
       setIsLoading(false);
       setStreamedMessageId(null);
-      setAbortController(null);
+      setAbortController(null); // Reset the controller
+
     }
   }, [messages, input, abortController, selectedChatId, getToken]); // Include getToken
 
 
   const createNewChat = useCallback(async () => {
+    //abort any ongoing requests
     if (abortController) {
-      abortController.abort();
+        abortController.abort();
     }
     setSelectedChatId(null);
     setMessages([]);
@@ -165,20 +173,19 @@ export const useChatLogic = () => {
 
 
     try {
-      const token = await getToken(); // Get token
-      
-      if(!token){
-        throw new Error("Not authenticated")
+      const token = await getToken({ template: "kvbackend" }); // Get token.  IMPORTANT!
+      if (!token) {
+        throw new Error("Authentication token not available.");
       }
       const response = await fetch('http://localhost:8000/api/chats/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Include token
+          'Authorization': `Bearer ${token}`, // Include the token
         },
         body: JSON.stringify({
           user_id: "PLACEHOLDER", // This is now handled on the backend.  Remove from here.
-          title: null, // Optional title
+          title: null, // Or a default title
         }),
       });
 
@@ -187,8 +194,9 @@ export const useChatLogic = () => {
         throw new Error(errorData.detail || response.statusText);
       }
 
-      const data: { chat_id: string } = await response.json();
+      const data: { chat_id: string } = await response.json(); // Get chat_id
       setSelectedChatId(data.chat_id); // Set the selected chat ID
+      setAbortController(null);
 
     } catch (error: any) {
       setError(error.message);
@@ -202,12 +210,11 @@ export const useChatLogic = () => {
         setSelectedChatId(chatId);
         setMessages([]); // Clear existing messages
         try {
-            const token = await getToken(); // <--- Get token
-            
+            const token = await getToken({ template: "kvbackend" }); // <--- Get token
             if(!token) {
                 throw new Error("Not authenticated.");
             }
-            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`,{
+            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`,{ //CORRECT URL
               headers: {
                     'Authorization': `Bearer ${token}` // Include the token
                 }
@@ -233,29 +240,26 @@ export const useChatLogic = () => {
 
     const fetchChats = useCallback(async () => {
     try {
-        const token = await getToken(); // Get token
-        
+        const token = await getToken({ template: "kvbackend" }); // Get token
         if(!token) {
             throw new Error("Not authenticated")
         }
-        const response = await fetch('http://localhost:8000/api/chats', {
-        headers: {
-            'Authorization': `Bearer ${token}`, // Include token
-        },
+        const response = await fetch('http://localhost:8000/api/chats', { //CORRECT URL
+          headers: {
+            'Authorization': `Bearer ${token}`, // Include the token
+          }
         });
-        console.log(Response.json({ token }))
         if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || response.statusText);
         }
         const data = await response.json();
-        setChats(data);
+        setChats(data); // Update the chats state
     } catch (error: any) {
         console.error("Error fetching chats:", error);
         setError("Failed to load chats."); // Set a user-friendly error
     }
-    }, [setChats, getToken]); // Include getToken
-
+    }, [setChats, getToken])
 
   return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats };
 };
