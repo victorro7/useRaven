@@ -23,7 +23,7 @@ export const useChatLogic = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<any[]>([]);  // Keep this for the chat list
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const { sessionId, getToken } = useAuth(); // Get the getToken function from Clerk
+  const { userId, sessionId, getToken } = useAuth(); // Get the getToken function from Clerk
 
   const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,6 +51,7 @@ export const useChatLogic = () => {
       const token = await getToken({ template: 'kvbackend' }); //  Get the token
       console.log(token);
       console.log(sessionId)
+      console.log(userId)
       if (!token) {
         throw new Error("Authentication token not available."); // Handle missing token
       }

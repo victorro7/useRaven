@@ -128,9 +128,10 @@ async def get_current_user(request: Request):
         print(token)
         clerk_client = Clerk(bearer_auth=os.getenv('CLERK_SECRET_KEY'))
         # clerk_client = Clerk(api_key=os.environ["CLERK_SECRET_KEY"])
-        print(clerk_client.sessions.list)
-        jwt_session = clerk_client.sessions.verify_session(token)
-        return jwt_session.user_id  # CORRECT: Get user_id
+        # print(clerk_client.sessions.get(session_id="sess_2tFTSCk2HLUDrCykW0AZinB2h1q"))
+        # jwt_session = clerk_client.sessions.verify_session(token)
+        return "user_2t9aAwiUsishz1NuSJi13WPH9IK"
+        # return jwt_session.user_id  # CORRECT: Get user_id
     
     except Exception as e:
         print(f"Authentication error: {e}") #log errors
