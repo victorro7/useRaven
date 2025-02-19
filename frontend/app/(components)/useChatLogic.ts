@@ -63,8 +63,7 @@ export const useChatLogic = () => {
             })),
             chatId: selectedChatId, // Send chatId separately
         };
-
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('http://localhost:8000/chat', { //BACKEND URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +176,7 @@ export const useChatLogic = () => {
       if (!token) {
         throw new Error("Authentication token not available.");
       }
-      const response = await fetch('http://localhost:8000/api/chats/create', {
+      const response = await fetch('http://localhost:8000/api/chats/create', { //BACKEND URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +213,7 @@ export const useChatLogic = () => {
             if(!token) {
                 throw new Error("Not authenticated.");
             }
-            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`,{ //CORRECT URL
+            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`,{ //BACKEND URL
               headers: {
                     'Authorization': `Bearer ${token}` // Include the token
                 }
@@ -239,27 +238,29 @@ export const useChatLogic = () => {
     }, [setSelectedChatId, setMessages, abortController, getToken]);
 
     const fetchChats = useCallback(async () => {
-    try {
-        const token = await getToken({ template: "kvbackend" }); // Get token
-        if(!token) {
-            throw new Error("Not authenticated")
+        try {
+            const token = await getToken({ template: "kvbackend" });
+            if (!token) {
+              throw new Error('Authentication token not available.');
+            }
+            const response = await fetch('http://localhost:8000/api/chats', { // BACKEND URL
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch chats: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setChats(data);
+        } catch (error: any) {
+            console.error("Error fetching chats:", error);
+            setError(error.message || 'Failed to load chats.');
         }
-        const response = await fetch('http://localhost:8000/api/chats', { //CORRECT URL
-          headers: {
-            'Authorization': `Bearer ${token}`, // Include the token
-          }
-        });
-        if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || response.statusText);
-        }
-        const data = await response.json();
-        setChats(data); // Update the chats state
-    } catch (error: any) {
-        console.error("Error fetching chats:", error);
-        setError("Failed to load chats."); // Set a user-friendly error
-    }
-    }, [setChats, getToken])
+    }, [setChats, getToken]);
 
   return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats };
 };

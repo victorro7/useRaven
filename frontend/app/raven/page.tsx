@@ -1,4 +1,3 @@
-// app/raven/page.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
 import Navbar from '../(components)/Navbar';
@@ -13,7 +12,7 @@ import { useChatLogic } from '../(components)/useChatLogic';
 import { ChatSidebar } from '../(components)/ChatSidebar';
 
 export default function Home() {
-    const { messages, input, setInput, isLoading, error, handleFormSubmit, loadChat, createNewChat, chats, setChats } = useChatLogic();
+    const { messages, input, setInput, isLoading, error, handleFormSubmit, loadChat, createNewChat, chats, setChats, fetchChats } = useChatLogic();
 
     const [showSuggestions, setShowSuggestions] = useState(true);
     const [showTitle, setShowTitle] = useState(true);
@@ -21,22 +20,18 @@ export default function Home() {
     const { user, isLoaded, isSignedIn } = useUser();
     const router = useRouter();
 
+
     // Fetch chats on component mount (or user login)
     useEffect(() => {
-      const fetchChats = async () => {
-        if (isSignedIn) { // Fetch chats only if signed in
-          //TODO: Implement fetch chats
-          // Example:
-          const response = await fetch('http://localhost:8000/api/chats'); // Your API endpoint
-          if (response.ok) {
-            const data = await response.json();
-            setChats(data); // Assuming your API returns an array of chats
-          }
+      const fetchData = async () => { //named function
+        if (isSignedIn) {
+          await fetchChats(); // Await fetchChats
         }
       };
 
-      fetchChats();
-    }, [isSignedIn, setChats])
+      fetchData();
+    }, [isSignedIn, fetchChats]); // Add fetchChats to the dependency array
+
 
     useEffect(() => {
         if (!hasInteracted) {
@@ -48,8 +43,8 @@ export default function Home() {
     }, [hasInteracted, input])
 
     const setPrompt = (prompt: string) => {
-      setInput(prompt);
-      setShowSuggestions(false);
+        setInput(prompt);
+        setShowSuggestions(false);
     };
 
     const suggestions = [
