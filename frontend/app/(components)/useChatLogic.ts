@@ -31,7 +31,7 @@ export const useChatLogic = () => {
         setIsLoading(true);
         setError(null);
 
-            // Abort any existing requests
+        // Abort any existing requests
         if (abortController) {
             abortController.abort();
         }
@@ -152,9 +152,9 @@ export const useChatLogic = () => {
                 setError(err.message || "An unexpected error occurred.");
             }
         } finally {
-        setIsLoading(false);
-        setStreamedMessageId(null);
-        setAbortController(null); // Reset the controller
+            setIsLoading(false);
+            setStreamedMessageId(null);
+            setAbortController(null); // Reset the controller
 
         }
     }, [messages, input, abortController, selectedChatId, getToken]); // Correct dependencies
@@ -200,67 +200,76 @@ export const useChatLogic = () => {
     }, [getToken, setSelectedChatId, setMessages, setInput, abortController]);
 
     const loadChat = useCallback(async (chatId: string) => {
-    if (abortController) {
-        abortController.abort(); // Cancel any ongoing requests
-    }
-
-    setSelectedChatId(chatId); // Set the selected chat ID *first*
-    setMessages([]); // Clear existing messages *before* fetching new ones
-
-    try {
-        const token = await getToken({ template: "kvbackend" });
-        if (!token) {
-            throw new Error('Authentication token not available.');
-        }
-        const response = await fetch(`http://localhost:8000/api/chats/${chatId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || response.statusText);
+        if (abortController) {
+            abortController.abort(); // Cancel any ongoing requests
         }
 
-        const data = await response.json();
-        // Convert timestamps and set messages
-        const formattedMessages = data.map((message: any) => ({
-            ...message,
-            timestamp: new Date(message.timestamp * 1000),
-            parts: [{ text: message.content }],
-        }));
-        setMessages(formattedMessages); // Set messages for the selected chat
+        setIsLoading(true);
+        setError(null);
 
-    } catch (error: any) {
-        setError(error.message);
-    } finally {
-        setAbortController(null); // Reset abort controller
-    }
+        setSelectedChatId(chatId); // Set the selected chat ID *first*
+        setMessages([]); // Clear existing messages *before* fetching new ones
+
+        try {
+            const token = await getToken({ template: "kvbackend" });
+            if (!token) {
+                throw new Error('Authentication token not available.');
+            }
+            const response = await fetch(`http://localhost:8000/api/chats/${chatId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || response.statusText);
+            }
+
+            const data = await response.json();
+            // Convert timestamps and set messages
+            const formattedMessages = data.map((message: any) => ({
+                ...message,
+                timestamp: new Date(message.timestamp * 1000),
+                parts: [{ text: message.content }],
+            }));
+            setMessages(formattedMessages); // Set messages for the selected chat
+
+        } catch (error: any) {
+            setError(error.message);
+        } finally {
+            setIsLoading(false);
+            setAbortController(null); // Reset abort controller
+        }
     }, [getToken, setSelectedChatId, setMessages, abortController]);
 
     const fetchChats = useCallback(async () => {
-    try {
-        const token = await getToken({ template: "kvbackend" }); // Get token
-        if(!token) {
-            throw new Error("Not authenticated")
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const token = await getToken({ template: "kvbackend" }); // Get token
+            if(!token) {
+                throw new Error("Not authenticated")
+            }
+            const response = await fetch('http://localhost:8000/api/chats', { //CORRECT URL
+            headers: {
+                'Authorization': `Bearer ${token}`, // Include the token
+            }
+            });
+            if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || response.statusText);
+            }
+            const data = await response.json();
+            setChats(data); // Update the chats state
+        } catch (error: any) {
+            console.error("Error fetching chats:", error);
+            setError(error.message || "Failed to load chats.");
+        } finally {
+            setIsLoading(false); // Set loading to false when finished (or on error)
         }
-        const response = await fetch('http://localhost:8000/api/chats', { //CORRECT URL
-          headers: {
-            'Authorization': `Bearer ${token}`, // Include the token
-          }
-        });
-        if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || response.statusText);
-        }
-        const data = await response.json();
-        setChats(data); // Update the chats state
-    } catch (error: any) {
-        console.error("Error fetching chats:", error);
-        setError("Failed to load chats."); // Set a user-friendly error
-    }
-    }, [setChats, getToken])
+    }, [setChats, getToken]);
 
     const deleteChat = useCallback(async (chatId: string) => {
         if (abortController) {
