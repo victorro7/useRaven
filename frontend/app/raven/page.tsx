@@ -30,7 +30,6 @@ export default function Home() {
       fetchData();
     }, [isSignedIn, fetchChats]); // Add fetchChats to the dependency array
 
-
     useEffect(() => {
         if (!hasInteracted) {
             setShowSuggestions(input.length === 0);
@@ -89,7 +88,7 @@ export default function Home() {
           <Navbar title="Raven" />
 
             <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
-                {/* Loading Spinner (show if loading) */}
+                {/* Loading Spinner */}
                 {isLoading && (
                     <div className="flex justify-center items-center h-full">
                         <Spinner size="lg" color="white" />
@@ -98,7 +97,7 @@ export default function Home() {
                 {/* Loading Spinner */}
 
                 {/* Intro */}
-                {!isLoading && showTitle &&  (
+                {showTitle &&  (
                   <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                     <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
                     Hey {userName}! Welcome to Raven
@@ -107,21 +106,20 @@ export default function Home() {
                 )}
                 {/* Intro */}
                 {/* Chat messages */}
-                {!isLoading && (
-                <div className="w-full sm:max-w-2xl mx-auto flex-grow overflow-y-auto">
-                  <div className="flex-grow overflow-y-auto ">
-                    {messages.map((message) => (
-                      <ChatMessage
-                        key={message.id}
-                        role={message.role}
-                        content={message.parts.map((p) => p.text).join('')}
-                        imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
-                      />
-                    ))}
-                    {isLoading && <div className="text-gray-500">Loading...</div>}
-                    {error && <div className="text-red-500">An error occurred.</div>}
+                {(<div className="w-full sm:max-w-2xl mx-auto flex-grow overflow-y-auto">
+                    <div className="flex-grow overflow-y-auto ">
+                      {messages.map((message) => (
+                        <ChatMessage
+                          key={message.id}
+                          role={message.role}
+                          content={message.parts.map((p) => p.text).join('')}
+                          imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
+                        />
+                      ))}
+                      {isLoading && <div className="text-gray-500">Loading...</div>}
+                      {error && <div className="text-red-500">An error occurred.</div>}
+                    </div>
                   </div>
-                </div>
                 )}
                 {/* Chat messages */}
             </main>

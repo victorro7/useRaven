@@ -15,151 +15,149 @@ export interface FormattedChatMessage {
 const generateId = (type: "user" | "assistant" | "message") => `${type}-${Date.now()}`;
 
 export const useChatLogic = () => {
-  const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [chats, setChats] = useState<any[]>([]); //keep
-  const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const { getToken } = useAuth();
+    const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
+    const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+    const [chats, setChats] = useState<any[]>([]); //keep
+    const [abortController, setAbortController] = useState<AbortController | null>(null);
+    const { getToken } = useAuth();
 
     const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
-    event.preventDefault();
+        event.preventDefault();
 
-    setIsLoading(true);
-    setError(null);
+        setIsLoading(true);
+        setError(null);
 
-        // Abort any existing requests
-    if (abortController) {
-        abortController.abort();
-    }
-
-    const newUserMessage: FormattedChatMessage = {
-      role: 'user',
-      parts: [{ text: input }],
-      id: generateId("user"),
-    };
-
-    // Add new message to the BEGINNING of the messages array:
-    setMessages((prevMessages) => [...prevMessages, newUserMessage]);
-    setInput('');
-
-    // Create a *new* AbortController for this request
-    const newAbortController = new AbortController();
-    setAbortController(newAbortController); // Store for later
-
-    try {
-        const token = await getToken({ template: "kvbackend" });
-        if(!token) {
-            throw new Error("Authentication token not available.");
+            // Abort any existing requests
+        if (abortController) {
+            abortController.abort();
         }
-        // Send the selectedChatId in the request body
-        const requestBody = {
-            messages: [...messages, newUserMessage].map(msg => ({
-                role: msg.role,
-                parts: msg.parts.map(part => part.text)
-            })),
-            chatId: selectedChatId, // Send chatId separately
+
+        const newUserMessage: FormattedChatMessage = {
+        role: 'user',
+        parts: [{ text: input }],
+        id: generateId("user"),
         };
-      const response = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-        signal: newAbortController.signal,
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || response.statusText);
-      }
+        // Add new message to the BEGINNING of the messages array:
+        setMessages((prevMessages) => [...prevMessages, newUserMessage]);
+        setInput('');
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body from server.");
-      }
+        // Create a *new* AbortController for this request
+        const newAbortController = new AbortController();
+        setAbortController(newAbortController); // Store for later
 
-      const newAssistantMessageId = generateId("assistant");
-      setStreamedMessageId(newAssistantMessageId);
-
-      
-      let partialResponse = "";
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) {
-          break;
-        }
-
-        if (newAbortController.signal.aborted) {
-            break; // Exit if aborted
-        }
-
-        const chunk = new TextDecoder().decode(value);
-        partialResponse += chunk;
-
-        let lines = partialResponse.split('\n');
-        partialResponse = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line) {
-            try {
-              const jsonChunk = JSON.parse(line);
-              if (jsonChunk.error) {
-                throw new Error(jsonChunk.error);
-              }
-
-              if (jsonChunk.response) {
-                setMessages((prevMessages) => {
-                  const existingAssistantMessageIndex = prevMessages.findIndex(
-                    (msg) => msg.id === newAssistantMessageId
-                  );
-
-                    if (existingAssistantMessageIndex !== -1) {
-                        const updatedMessages = [...prevMessages];
-                        updatedMessages[existingAssistantMessageIndex] = {
-                        ...updatedMessages[existingAssistantMessageIndex],
-                        parts: [{ text: updatedMessages[existingAssistantMessageIndex].parts[0].text + jsonChunk.response }],
-                        };
-                        return updatedMessages;
-                    } else {
-                        const newAssistantMessage: FormattedChatMessage = {
-                        role: 'assistant',
-                        parts: [{ text: jsonChunk.response }],
-                        id: newAssistantMessageId,
-                        };
-                        return [...prevMessages, newAssistantMessage];
-                    }
-                });
-              }
-            } catch (parseError) {
-                if (parseError instanceof DOMException && parseError.name === 'AbortError') {
-                    return; // Expected
-                }
-                console.error("Error parsing JSON:", parseError, line);
-                setError("Error processing response from server.");
+        try {
+            const token = await getToken({ template: "kvbackend" });
+            if(!token) {
+                throw new Error("Authentication token not available.");
             }
-          }
-        }
-      }
-    } catch (err: any) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-            console.log("Fetch aborted"); // Expected
-        } else {
-            setError(err.message || "An unexpected error occurred.");
-        }
-    } finally {
-      setIsLoading(false);
-      setStreamedMessageId(null);
-      setAbortController(null); // Reset the controller
+            // Send the selectedChatId in the request body
+            const requestBody = {
+                messages: [...messages, newUserMessage].map(msg => ({
+                    role: msg.role,
+                    parts: msg.parts.map(part => part.text)
+                })),
+                chatId: selectedChatId, // Send chatId separately
+            };
+        const response = await fetch('http://localhost:8000/chat', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(requestBody),
+            signal: newAbortController.signal,
+        });
 
-    }
-  }, [messages, input, abortController, selectedChatId, getToken]); // Correct dependencies
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || response.statusText);
+        }
 
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error("No response body from server.");
+        }
+
+        const newAssistantMessageId = generateId("assistant");
+        setStreamedMessageId(newAssistantMessageId);
+
+        let partialResponse = "";
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+            break;
+            }
+
+            if (newAbortController.signal.aborted) {
+                break; // Exit if aborted
+            }
+
+            const chunk = new TextDecoder().decode(value);
+            partialResponse += chunk;
+
+            let lines = partialResponse.split('\n');
+            partialResponse = lines.pop() || "";
+
+            for (const line of lines) {
+            if (line) {
+                try {
+                const jsonChunk = JSON.parse(line);
+                if (jsonChunk.error) {
+                    throw new Error(jsonChunk.error);
+                }
+
+                if (jsonChunk.response) {
+                    setMessages((prevMessages) => {
+                    const existingAssistantMessageIndex = prevMessages.findIndex(
+                        (msg) => msg.id === newAssistantMessageId
+                    );
+
+                        if (existingAssistantMessageIndex !== -1) {
+                            const updatedMessages = [...prevMessages];
+                            updatedMessages[existingAssistantMessageIndex] = {
+                            ...updatedMessages[existingAssistantMessageIndex],
+                            parts: [{ text: updatedMessages[existingAssistantMessageIndex].parts[0].text + jsonChunk.response }],
+                            };
+                            return updatedMessages;
+                        } else {
+                            const newAssistantMessage: FormattedChatMessage = {
+                            role: 'assistant',
+                            parts: [{ text: jsonChunk.response }],
+                            id: newAssistantMessageId,
+                            };
+                            return [...prevMessages, newAssistantMessage];
+                        }
+                    });
+                }
+                } catch (parseError) {
+                    if (parseError instanceof DOMException && parseError.name === 'AbortError') {
+                        return; // Expected
+                    }
+                    console.error("Error parsing JSON:", parseError, line);
+                    setError("Error processing response from server.");
+                }
+            }
+            }
+        }
+        } catch (err: any) {
+            if (err instanceof DOMException && err.name === 'AbortError') {
+                console.log("Fetch aborted"); // Expected
+            } else {
+                setError(err.message || "An unexpected error occurred.");
+            }
+        } finally {
+        setIsLoading(false);
+        setStreamedMessageId(null);
+        setAbortController(null); // Reset the controller
+
+        }
+    }, [messages, input, abortController, selectedChatId, getToken]); // Correct dependencies
 
     const createNewChat = useCallback(async () => {
         if (abortController) {
