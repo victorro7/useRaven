@@ -39,9 +39,9 @@ export const useChatLogic = () => {
         }
 
         const newUserMessage: FormattedChatMessage = {
-        role: 'user',
-        parts: [{ text: input }],
-        id: generateId("user"),
+            role: 'user',
+            parts: [{ text: input }],
+            id: generateId("user"),
         };
 
         // Add new message to the BEGINNING of the messages array:
@@ -195,12 +195,15 @@ export const useChatLogic = () => {
 
             const data: { chat_id: string } = await response.json();
             setSelectedChatId(data.chat_id); // Set chat ID after successful creation
-            setAbortController(null);
+            // Add the new chat to the *beginning* of the `chats` array:
+            setChats(prevChats => [{ chatId: data.chat_id, title: `Chat ${data.chat_id.substring(0,8)}`, userId: '', createdAt: Date.now() }, ...prevChats]);
 
         } catch (error: any) {
             setError(error.message);
+        } finally {
+            setAbortController(null);
         }
-    }, [getToken, setSelectedChatId, setMessages, setInput, abortController]);
+    }, [getToken, setSelectedChatId, setMessages, setInput, abortController, setChats]);
 
     const loadChat = useCallback(async (chatId: string) => {
         if (abortController) {
