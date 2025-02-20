@@ -15,9 +15,10 @@ interface SidebarProps {
   createNewChat: () => void;
   deleteChat: (chatId: string) => void;
   renameChat: (chatId: string, newTitle: string) => void; // Add renameChat prop
+  messages: any[];
 }
 
-export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, renameChat }: SidebarProps) {
+export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, renameChat, messages }: SidebarProps) {
     const [open, setOpen] = React.useState(false);
     const { user } = useUser();
     const [editingChatId, setEditingChatId] = useState<string | null>(null); // Track which chat is being edited
@@ -84,6 +85,7 @@ export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, rename
                   e.preventDefault(); // Prevent default link behavior
                   createNewChat();
                 }}
+                disabled={messages.length === 0}
               />
               {chats.map((chat) => (
                   <div key={chat.chatId} className="flex items-center justify-between group">

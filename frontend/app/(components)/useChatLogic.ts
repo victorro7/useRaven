@@ -1,6 +1,7 @@
 // app/(components)/useChatLogic.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect} from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter, usePathname } from 'next/navigation'; // Import
 
 interface ChatMessagePart {
   text: string;
@@ -25,11 +26,11 @@ export const useChatLogic = () => {
     const [chats, setChats] = useState<any[]>([]); //keep
     const [abortController, setAbortController] = useState<AbortController | null>(null);
     const { getToken } = useAuth();
+    const router = useRouter();
 
     const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
         event.preventDefault();
 
-        // setIsLoading(true);
         setIsGenerating(true);
         setError(null);
 
@@ -155,7 +156,6 @@ export const useChatLogic = () => {
             }
         } finally {
             setIsGenerating(false);
-            // setIsLoading(false);
             setStreamedMessageId(null);
             setAbortController(null); // Reset the controller
 
@@ -163,47 +163,50 @@ export const useChatLogic = () => {
     }, [messages, input, abortController, selectedChatId, getToken]); // Correct dependencies
 
     const createNewChat = useCallback(async () => {
+        //abort any ongoing requests
         if (abortController) {
             abortController.abort();
         }
+
         setSelectedChatId(null);
-        setMessages([]); // Clear messages
+        setMessages([]); // Clear messages when creating a new chat
         setInput('');
         setAbortController(null);
 
+
         try {
-            const token = await getToken({ template: "kvbackend" });
-            if (!token) {
-                throw new Error("Authentication token not available.");
-            }
-            const response = await fetch('http://localhost:8000/api/chats/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    user_id: "PLACEHOLDER", // Remove this
-                    title: null, // Or a default title
-                }),
-            });
+          const token = await getToken({ template: "kvbackend" }); // Get token.  IMPORTANT!
+          if (!token) {
+            throw new Error("Authentication token not available.");
+          }
+          const response = await fetch('http://localhost:8000/api/chats/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`, // Include the token
+            },
+            body: JSON.stringify({
+              user_id: "PLACEHOLDER", // This is now handled on the backend.  Remove from here.
+              title: null, // Or a default title
+            }),
+          });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || response.statusText);
-            }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || response.statusText);
+          }
 
-            const data: { chat_id: string } = await response.json();
-            setSelectedChatId(data.chat_id); // Set chat ID after successful creation
-            // Add the new chat to the *beginning* of the `chats` array:
-            setChats(prevChats => [{ chatId: data.chat_id, title: `Chat ${data.chat_id.substring(0,8)}`, userId: '', createdAt: Date.now() }, ...prevChats]);
+          const data: { chat_id: string } = await response.json(); // Get chat_id
+          
+          setSelectedChatId(data.chat_id); // Set the selected chat ID.  ESSENTIAL.
+          setAbortController(null);
+          // Update the URL with the new chat ID
+          setChats(prevChats => [{ chatId: data.chat_id, title: `Chat ${data.chat_id.substring(0,8)}`, userId: '', createdAt: Date.now() }, ...prevChats]);
 
         } catch (error: any) {
-            setError(error.message);
-        } finally {
-            setAbortController(null);
+          setError(error.message);
         }
-    }, [getToken, setSelectedChatId, setMessages, setInput, abortController, setChats]);
+      }, [getToken, setSelectedChatId, setMessages, setInput, abortController, router]); // Include getToken
 
     const loadChat = useCallback(async (chatId: string) => {
         if (abortController) {
@@ -247,7 +250,7 @@ export const useChatLogic = () => {
             setIsLoading(false);
             setAbortController(null); // Reset abort controller
         }
-    }, [getToken, setSelectedChatId, setMessages, abortController]);
+    }, [getToken, setSelectedChatId, setMessages, abortController, router]);
 
     const fetchChats = useCallback(async () => {
         setIsLoading(true);

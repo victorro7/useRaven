@@ -18,17 +18,25 @@ export default function Home() {
     const [hasInteracted, setHasInteracted] = useState(false);
     const { user, isLoaded, isSignedIn } = useUser();
     const router = useRouter();
+    const [chatsLoaded, setChatsLoaded] = useState(false);
 
     // Fetch chats on component mount (or user login)
     useEffect(() => {
       const fetchData = async () => { //named function
         if (isSignedIn) {
           await fetchChats(); // Await fetchChats
+          setChatsLoaded(true);
         }
       };
 
       fetchData();
     }, [isSignedIn, fetchChats]); // Add fetchChats to the dependency array
+
+    useEffect(() => {
+      if (isSignedIn && chatsLoaded && chats.length === 0) {
+          createNewChat();
+      }
+  }, [isSignedIn, chatsLoaded, chats.length, createNewChat]);
 
     useEffect(() => {
         if (!hasInteracted) {
@@ -80,7 +88,7 @@ export default function Home() {
     return (
       <div className="flex h-screen bg-[#09090b] text-black"> {/* Outer flex row, min-h-screen */}
         {/* SideBar */}
-        <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} />
+        <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} />
         {/* SideBar */}
 
         {/* Main Content */}

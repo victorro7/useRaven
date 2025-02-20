@@ -160,11 +160,13 @@ export const SidebarLink = ({
   link,
   className,
   children,
+  disabled,
   onClick,
   ...props
 }: {
   link: Links;
   className?: string;
+  disabled?: boolean;
   children?: React.ReactNode;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   props?: LinkProps;
@@ -183,10 +185,18 @@ export const SidebarLink = ({
       href={link.href}
       className={cn(
         "flex items-center justify-start gap-2  group/sidebar py-2",
-        className
+        className,
+        disabled ? "opacity-50 cursor-not-allowed" : ""
       )}
       onClick={handleClick}
       {...props}
+      // onClick={(e) => {
+      //     if (disabled) {
+      //       e.preventDefault(); // Prevent click if disabled
+      //     } else if (onClick) {
+      //       onClick(e)
+      //     }
+      //   }}
     >
       {link.icon}
 

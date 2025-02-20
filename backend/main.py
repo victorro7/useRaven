@@ -11,6 +11,7 @@ import json
 import asyncpg
 import httpx
 import uuid
+from typing import AsyncGenerator
 from clerk_backend_api import Clerk
 from clerk_backend_api.jwks_helpers import AuthenticateRequestOptions
 
@@ -248,7 +249,7 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
 # --- API Endpoints ---
 
 # --- Helper Functions ---
-async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str):
+async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
     try:
         db = await get_db_pool() #get the pool
         conn = await db.acquire() #get connection
