@@ -158,10 +158,12 @@ export const MobileSidebar = ({
 export const SidebarLink = ({
   link,
   className,
+  children,
   ...props
 }: {
   link: Links;
   className?: string;
+  children?: React.ReactNode;
   props?: LinkProps;
 }) => {
   const { open, animate } = useSidebar();
@@ -185,6 +187,7 @@ export const SidebarLink = ({
       >
         {link.label}
       </motion.span>
+      {children}
     </Link>
   );
 };

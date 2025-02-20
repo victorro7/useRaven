@@ -19,7 +19,6 @@ export default function Home() {
     const { user, isLoaded, isSignedIn } = useUser();
     const router = useRouter();
 
-
     // Fetch chats on component mount (or user login)
     useEffect(() => {
       const fetchData = async () => { //named function

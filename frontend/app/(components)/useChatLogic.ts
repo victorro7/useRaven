@@ -337,5 +337,5 @@ export const useChatLogic = () => {
         }
     }, [getToken, setChats]);
 
-    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat };
+    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats, renameChat, deleteChat };
 };
