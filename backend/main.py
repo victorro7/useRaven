@@ -241,15 +241,18 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
 
     try:
         await add_messages_to_db(db, chat_request, chat_id, user_id)
-        return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
+        return StreamingResponse(generate_stream(db, chat_request, request, chat_id, user_id), media_type="text/event-stream")
     except Exception as e:
         print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
 # --- API Endpoints ---
 
 # --- Helper Functions ---
-async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: str):
+async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str):
     try:
+        db = await get_db_pool() #get the pool
+        conn = await db.acquire() #get connection
+
         model_name = "gemini-2.0-pro-exp-02-05"
         message_list = ""
         for message in chat_request.messages:
@@ -257,6 +260,7 @@ async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: 
                 message_list += f"{message.role.upper()}: {part}\n"
         message_list += "ASSISTANT:"
 
+        response_text = ""
         for chunk in client.models.generate_content_stream(
             model=model_name,
             contents=[message_list]
@@ -265,12 +269,45 @@ async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: 
                 print("Client disconnected")
                 return
 
-            # print(chunk.text) # Keep commented out unless debugging
-            yield json.dumps({"response": chunk.text}) + "\n"
-            await asyncio.sleep(0)
+            try:
+                curr_response = json.dumps(chunk.text)
+                if curr_response:
+                    response_text += curr_response.strip('"')
+
+                yield json.dumps({"response": chunk.text}) + "\n"
+                await asyncio.sleep(0)
+            except:
+                continue
+
+        if response_text:
+            await add_custom_message_to_db(db, chat_id, user_id, "assistant", response_text)
 
     except Exception as e:
         yield json.dumps({"error": str(e)}) + "\n"
+
+async def add_custom_message_to_db(db, chat_id, user_id, role, content):
+    """
+    Adds a single message with a specified role and content to the database.
+
+    Args:
+        db: The database connection object.
+        chat_id: The ID of the chat.
+        user_id: The ID of the user.
+        role: The role of the message (e.g., "user", "assistant").
+        content: The text content of the message.
+    """
+    message_id = str(uuid.uuid4())
+    if role is not None and content is not None:
+        try:
+            await db.execute('''
+                INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
+                VALUES ($1, $2, $3, $4, $5, NOW())
+            ''', message_id, chat_id, user_id, role, content)
+            print(f"Message {message_id} inserted successfully.")
+        except Exception as e:
+            print(f"Error inserting message {message_id}: {e}")
+    else:
+        print("Error: role or content missing.")
 
 async def add_messages_to_db(db, chat_requests, chat_id, user_id):
     """
@@ -289,6 +326,7 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
         messages_to_add = get_last_messages(chat_request.messages)
 
         if messages_to_add:
+            print(messages_to_add)
             for message in messages_to_add:
                 message_id = str(uuid.uuid4())
                 role = message.role
@@ -321,8 +359,6 @@ def get_last_messages(chat_messages):
     if not chat_messages:
         return []
 
-    if len(chat_messages) >= 2:
-        return chat_messages[-2:]
-    else:
+    if len(chat_messages) >= 1:
         return chat_messages[-1:] #return the last message in a list.
 # --- Helper Functions ---

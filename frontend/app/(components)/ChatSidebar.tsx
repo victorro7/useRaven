@@ -58,7 +58,7 @@ export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, rename
       if (event.key === 'Enter') {
           event.preventDefault(); // Prevent newline in contenteditable
           handleSaveRename(chatId); // Save on Enter
-      } else if (event.key === 'p') {
+      } else if (event.key === 'Escape') {
           handleCancelRename(); // Cancel on Escape
       }
     }
@@ -116,7 +116,7 @@ export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, rename
                                   }}
                               />
                           ) : (
-                            <span className="text-red-600 text-sm  transition duration-150 whitespace-pre inline-block !p-0 !m-0">
+                            <span className="text-black text-sm  transition duration-150 whitespace-pre inline-block !p-0 !m-0">
                                   {chat.title || `-Chat ${chat.chatId.substring(0, 8)}`}
                               </span>
                           )}
@@ -193,7 +193,6 @@ export const Logo = () => {
         animate={{ opacity: 1 }}
         className="font-medium text-black dark:text-white whitespace-pre"
       >
-        Raven
       </motion.span>
     </Link>
   );

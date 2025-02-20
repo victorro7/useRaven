@@ -89,7 +89,7 @@ export default function Home() {
 
             <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
                 {/* Loading Spinner */}
-                {isLoading && (
+                {isLoading && showTitle &&  (
                     <div className="flex justify-center items-center h-full">
                         <Spinner size="lg" color="white" />
                     </div>
