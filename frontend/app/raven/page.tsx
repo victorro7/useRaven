@@ -12,8 +12,7 @@ import { useChatLogic } from '../(components)/useChatLogic';
 import { ChatSidebar } from '../(components)/ChatSidebar';
 
 export default function Home() {
-    const { messages, input, setInput, isLoading, error, handleFormSubmit, loadChat, createNewChat, chats, setChats, fetchChats } = useChatLogic();
-
+    const { messages, input, setInput, isLoading, error, handleFormSubmit, loadChat, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat } = useChatLogic();
     const [showSuggestions, setShowSuggestions] = useState(true);
     const [showTitle, setShowTitle] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
@@ -83,7 +82,7 @@ export default function Home() {
     return (
       <div className="flex h-screen bg-[#09090b] text-black"> {/* Outer flex row, min-h-screen */}
         {/* SideBar */}
-        <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} />
+        <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} />
         {/* SideBar */}
 
         {/* Main Content */}

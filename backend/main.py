@@ -10,6 +10,7 @@ import asyncio
 import json
 import asyncpg
 import httpx
+import uuid
 from clerk_backend_api import Clerk
 from clerk_backend_api.jwks_helpers import AuthenticateRequestOptions
 
@@ -37,6 +38,9 @@ app.add_middleware(
 class Message(BaseModel):
     role: str
     parts: list[str]
+
+class ChatRenameRequest(BaseModel):
+    title: str
 
 class ChatRequest(BaseModel):
     messages: list[Message]
@@ -190,6 +194,22 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
         print(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve messages: {e}")
 
+@app.patch("/api/chats/{chat_id}")  # Use PATCH for partial updates
+async def rename_chat(chat_id: str, request_body: ChatRenameRequest, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+    try:
+        # Check if the chat exists and belongs to the user
+        result = await db.fetchrow("SELECT id FROM raven_chats WHERE id = $1 AND user_id = $2", chat_id, user_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Chat not found or access denied")
+
+        # Update the chat title
+        await db.execute("UPDATE raven_chats SET title = $1 WHERE id = $2", request_body.title, chat_id)
+        return {"message": "Chat renamed successfully"}
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to rename chat: {e}")
+
 @app.delete("/api/chats/{chat_id}")
 async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
     async with db.transaction():
@@ -226,20 +246,69 @@ async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: 
             yield json.dumps({"response": chunk.text}) + "\n"
             await asyncio.sleep(0)
 
-
     except Exception as e:
         yield json.dumps({"error": str(e)}) + "\n"
 
+async def add_messages_to_db(db, chat_requests, chat_id, user_id):
+    """
+    Adds messages from one or more chat requests to the database.
+
+    Args:
+        db: The database connection object.
+        chat_requests: A chat request object or a list of chat request objects, each containing messages.
+        chat_id: The ID of the chat.
+        user_id: The ID of the user.
+    """
+    if not isinstance(chat_requests, list):
+        chat_requests = [chat_requests]
+
+    for chat_request in chat_requests:
+        messages_to_add = get_last_messages(chat_request.messages)
+
+        if messages_to_add:
+            for message in messages_to_add:
+                message_id = str(uuid.uuid4())
+                role = message.role
+                content = message.parts[0]
+
+                if role is not None and content is not None:
+                    try:
+                        await db.execute('''
+                            INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
+                            VALUES ($1, $2, $3, $4, $5, NOW())
+                        ''', message_id, chat_id, user_id, role, content)
+                        print(f"Message {message_id} inserted successfully.")
+                    except Exception as e:
+                        print(f"Error inserting message {message_id}: {e}")
+                else:
+                    print(f"Error: role or content missing from message: {message}")
+        else:
+            print("No messages to insert for this chat request.")
+
+def get_last_messages(chat_messages):
+    """
+    Retrieves the last message(s) from a list of chat messages.
+
+    Args:
+        chat_messages: A list of dictionaries, where each dictionary represents a chat message.
+
+    Returns:
+        A list containing the last two messages, or the last message if there is only one, or an empty list if there are no messages.
+    """
+    if not chat_messages:
+        return []
+
+    if len(chat_messages) >= 2:
+        return chat_messages[-2:]
+    else:
+        return chat_messages[-1:] #return the last message in a list.
+
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-    chat_id = chat_request.chatId
-    print(chat_id)
-    if(len(chat_request.messages) > 1):
+
+    if(len(chat_request.messages) >= 1):
         try:
-            # Attempt to extract chat_id from the last message
-            print(chat_request.messages)
-            # chat_id = chat_request.messages[-1].parts[0].split('-')[1]
-            chat_id=chat_id
+            chat_id = chat_request.chatId
         except (IndexError, AttributeError) as e:
             print(f"Error extracting chat ID: {e}")
             raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
@@ -248,40 +317,9 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
         created_chat = await create_chat(chat_creation_request, user_id, db)
         chat_id = created_chat.chat_id
 
-    last_message = chat_request.messages[-1]
-    message_id = str(uuid4())
-
     try:
-        await db.execute('''
-            INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
-            VALUES ($1, $2, $3, $4, $5, NOW())
-        ''', message_id, chat_id, user_id, last_message.role, last_message.parts[0])
-
+        await add_messages_to_db(db, chat_request, chat_id, user_id)
         return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
     except Exception as e:
         print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
-
-# @app.post("/chat")
-# async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-#     chat_id = chat_request.chatId  # Get chatId directly from the request body
-
-#     if not chat_id:  # If it's a new chat (no chatId provided)
-#         chat_creation_request = ChatCreateRequest(user_id=user_id)
-#         created_chat = await create_chat(chat_creation_request, user_id, db)
-#         chat_id = created_chat.chat_id
-#     # else the chat_id is already set.
-
-#     last_message = chat_request.messages[-1]
-#     message_id = str(uuid4())
-
-#     try:
-#         await db.execute('''
-#             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
-#             VALUES ($1, $2, $3, $4, $5, NOW())
-#         ''', message_id, chat_id, user_id, last_message.role, last_message.parts[0].text) # Insert the text of the message
-
-#         return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
-#     except Exception as e:
-#         print(f"Database error in chat endpoint: {e}")
-#         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
