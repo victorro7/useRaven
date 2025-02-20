@@ -18,6 +18,7 @@ export const useChatLogic = () => {
     const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [streamedMessageId, setStreamedMessageId] = useState<string | null>(null);
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -28,7 +29,8 @@ export const useChatLogic = () => {
     const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
         event.preventDefault();
 
-        setIsLoading(true);
+        // setIsLoading(true);
+        setIsGenerating(true);
         setError(null);
 
         // Abort any existing requests
@@ -152,7 +154,8 @@ export const useChatLogic = () => {
                 setError(err.message || "An unexpected error occurred.");
             }
         } finally {
-            setIsLoading(false);
+            setIsGenerating(false);
+            // setIsLoading(false);
             setStreamedMessageId(null);
             setAbortController(null); // Reset the controller
 
@@ -342,5 +345,5 @@ export const useChatLogic = () => {
         }
     }, [getToken, setChats]);
 
-    return { messages, input, setInput, isLoading, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats, renameChat, deleteChat };
+    return { messages, input, setInput, isLoading, isGenerating, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats, renameChat, deleteChat };
 };

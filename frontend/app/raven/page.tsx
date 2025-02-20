@@ -12,7 +12,7 @@ import { useChatLogic } from '../(components)/useChatLogic';
 import { ChatSidebar } from '../(components)/ChatSidebar';
 
 export default function Home() {
-    const { messages, input, setInput, isLoading, error, handleFormSubmit, loadChat, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat } = useChatLogic();
+    const { messages, input, setInput, isLoading, isGenerating, error, handleFormSubmit, loadChat, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat } = useChatLogic();
     const [showSuggestions, setShowSuggestions] = useState(true);
     const [showTitle, setShowTitle] = useState(true);
     const [hasInteracted, setHasInteracted] = useState(false);
@@ -89,7 +89,7 @@ export default function Home() {
 
             <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
                 {/* Loading Spinner */}
-                {isLoading && showTitle &&  (
+                {isLoading &&  (
                     <div className="flex justify-center items-center h-full">
                         <Spinner size="lg" color="white" />
                     </div>
@@ -116,7 +116,7 @@ export default function Home() {
                           imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
                         />
                       ))}
-                      {isLoading && <div className="text-gray-500">Loading...</div>}
+                      {isGenerating && <div className="p-2 text-gray-500">Typing...</div>}
                       {error && <div className="text-red-500">An error occurred.</div>}
                     </div>
                   </div>
