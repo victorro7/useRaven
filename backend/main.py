@@ -100,7 +100,7 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await close_db()  # Ensure the pool is closed
-
+# --- Database Connection Pool ---
 
 # --- Dependency for getting a database connection ---
 async def get_db():
@@ -225,6 +225,29 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
             print(f"Database error: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to delete chat: {e}")
 
+@app.post("/chat")
+async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+
+    if(len(chat_request.messages) >= 1):
+        try:
+            chat_id = chat_request.chatId
+        except (IndexError, AttributeError) as e:
+            print(f"Error extracting chat ID: {e}")
+            raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
+    else:
+        chat_creation_request = ChatCreateRequest(user_id=user_id)
+        created_chat = await create_chat(chat_creation_request, user_id, db)
+        chat_id = created_chat.chat_id
+
+    try:
+        await add_messages_to_db(db, chat_request, chat_id, user_id)
+        return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
+    except Exception as e:
+        print(f"Database error in chat endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
+# --- API Endpoints ---
+
+# --- Helper Functions ---
 async def generate_stream(chat_request: ChatRequest, request: Request, chat_id: str):
     try:
         model_name = "gemini-2.0-pro-exp-02-05"
@@ -302,24 +325,4 @@ def get_last_messages(chat_messages):
         return chat_messages[-2:]
     else:
         return chat_messages[-1:] #return the last message in a list.
-
-@app.post("/chat")
-async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-
-    if(len(chat_request.messages) >= 1):
-        try:
-            chat_id = chat_request.chatId
-        except (IndexError, AttributeError) as e:
-            print(f"Error extracting chat ID: {e}")
-            raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
-    else:
-        chat_creation_request = ChatCreateRequest(user_id=user_id)
-        created_chat = await create_chat(chat_creation_request, user_id, db)
-        chat_id = created_chat.chat_id
-
-    try:
-        await add_messages_to_db(db, chat_request, chat_id, user_id)
-        return StreamingResponse(generate_stream(chat_request, request, chat_id), media_type="text/event-stream")
-    except Exception as e:
-        print(f"Database error in chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
+# --- Helper Functions ---

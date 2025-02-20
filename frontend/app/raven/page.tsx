@@ -89,8 +89,16 @@ export default function Home() {
           <Navbar title="Raven" />
 
             <main className="flex-grow overflow-y-auto p-2 sm:p-4 relative">
+                {/* Loading Spinner (show if loading) */}
+                {isLoading && (
+                    <div className="flex justify-center items-center h-full">
+                        <Spinner size="lg" color="white" />
+                    </div>
+                )}
+                {/* Loading Spinner */}
+
                 {/* Intro */}
-                {showTitle && (
+                {!isLoading && showTitle &&  (
                   <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                     <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
                     Hey {userName}! Welcome to Raven
@@ -99,6 +107,7 @@ export default function Home() {
                 )}
                 {/* Intro */}
                 {/* Chat messages */}
+                {!isLoading && (
                 <div className="w-full sm:max-w-2xl mx-auto flex-grow overflow-y-auto">
                   <div className="flex-grow overflow-y-auto ">
                     {messages.map((message) => (
@@ -113,6 +122,7 @@ export default function Home() {
                     {error && <div className="text-red-500">An error occurred.</div>}
                   </div>
                 </div>
+                )}
                 {/* Chat messages */}
             </main>
 

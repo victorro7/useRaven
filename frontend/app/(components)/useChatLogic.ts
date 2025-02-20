@@ -241,7 +241,6 @@ export const useChatLogic = () => {
     }
     }, [getToken, setSelectedChatId, setMessages, abortController]);
 
-
     const fetchChats = useCallback(async () => {
     try {
         const token = await getToken({ template: "kvbackend" }); // Get token
@@ -265,7 +264,6 @@ export const useChatLogic = () => {
     }
     }, [setChats, getToken])
 
-    // Add deleteChat function
     const deleteChat = useCallback(async (chatId: string) => {
         if (abortController) {
             abortController.abort();
