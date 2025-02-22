@@ -14,8 +14,9 @@ interface SidebarProps {
   loadChat: (chatId: string) => void;
   createNewChat: () => void;
   deleteChat: (chatId: string) => void;
-  renameChat: (chatId: string, newTitle: string) => void; // Add renameChat prop
+  renameChat: (chatId: string, newTitle: string) => void;
   messages: any[];
+  fetchChats: () => Promise<void>;
 }
 
 export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, renameChat, messages }: SidebarProps) {

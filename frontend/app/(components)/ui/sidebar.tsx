@@ -190,13 +190,13 @@ export const SidebarLink = ({
       )}
       onClick={handleClick}
       {...props}
-      // onClick={(e) => {
-      //     if (disabled) {
-      //       e.preventDefault(); // Prevent click if disabled
-      //     } else if (onClick) {
-      //       onClick(e)
-      //     }
-      //   }}
+      onClick={(e) => {
+          if (disabled) {
+            e.preventDefault(); // Prevent click if disabled
+          } else if (onClick) {
+            onClick(e)
+          }
+        }}
     >
       {link.icon}
 

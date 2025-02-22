@@ -1,7 +1,7 @@
 // app/(components)/useChatLogic.ts
 import { useState, useCallback, useEffect} from 'react';
-import { useAuth } from '@clerk/nextjs';
-import { useRouter, usePathname } from 'next/navigation'; // Import
+import { useAuth, useUser } from '@clerk/nextjs';
+import { useRouter, usePathname, useParams } from 'next/navigation';
 
 interface ChatMessagePart {
   text: string;
@@ -30,13 +30,13 @@ export const useChatLogic = () => {
 
     const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
         event.preventDefault();
-
         setIsGenerating(true);
         setError(null);
 
         // Abort any existing requests
         if (abortController) {
             abortController.abort();
+            setAbortController(null);
         }
 
         const newUserMessage: FormattedChatMessage = {
@@ -66,88 +66,91 @@ export const useChatLogic = () => {
                 })),
                 chatId: selectedChatId, // Send chatId separately
             };
-        const response = await fetch('http://localhost:8000/chat', {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(requestBody),
-            signal: newAbortController.signal,
-        });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || response.statusText);
-        }
+            const response = await fetch('http://localhost:8000/chat', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify(requestBody),
+                signal: newAbortController.signal,
+            });
 
-        const reader = response.body?.getReader();
-        if (!reader) {
-            throw new Error("No response body from server.");
-        }
-
-        const newAssistantMessageId = generateId("assistant");
-        setStreamedMessageId(newAssistantMessageId);
-
-        let partialResponse = "";
-        while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-            break;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || response.statusText);
             }
 
-            if (newAbortController.signal.aborted) {
-                break; // Exit if aborted
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("No response body from server.");
             }
 
-            const chunk = new TextDecoder().decode(value);
-            partialResponse += chunk;
+            const newAssistantMessageId = generateId("assistant");
+            setStreamedMessageId(newAssistantMessageId);
 
-            let lines = partialResponse.split('\n');
-            partialResponse = lines.pop() || "";
 
-            for (const line of lines) {
-            if (line) {
-                try {
-                const jsonChunk = JSON.parse(line);
-                if (jsonChunk.error) {
-                    throw new Error(jsonChunk.error);
+
+            let partialResponse = "";
+            while (true) {
+                const { done, value } = await reader.read();
+
+                if (done) {
+                break;
                 }
 
-                if (jsonChunk.response) {
-                    setMessages((prevMessages) => {
-                    const existingAssistantMessageIndex = prevMessages.findIndex(
-                        (msg) => msg.id === newAssistantMessageId
-                    );
-
-                        if (existingAssistantMessageIndex !== -1) {
-                            const updatedMessages = [...prevMessages];
-                            updatedMessages[existingAssistantMessageIndex] = {
-                            ...updatedMessages[existingAssistantMessageIndex],
-                            parts: [{ text: updatedMessages[existingAssistantMessageIndex].parts[0].text + jsonChunk.response }],
-                            };
-                            return updatedMessages;
-                        } else {
-                            const newAssistantMessage: FormattedChatMessage = {
-                            role: 'assistant',
-                            parts: [{ text: jsonChunk.response }],
-                            id: newAssistantMessageId,
-                            };
-                            return [...prevMessages, newAssistantMessage];
-                        }
-                    });
+                if (newAbortController.signal.aborted) {
+                    break; // Exit if aborted
                 }
-                } catch (parseError) {
-                    if (parseError instanceof DOMException && parseError.name === 'AbortError') {
-                        return; // Expected
+
+                const chunk = new TextDecoder().decode(value);
+                partialResponse += chunk;
+
+                let lines = partialResponse.split('\n');
+                partialResponse = lines.pop() || "";
+
+                for (const line of lines) {
+                if (line) {
+                    try {
+                    const jsonChunk = JSON.parse(line);
+                    if (jsonChunk.error) {
+                        throw new Error(jsonChunk.error);
                     }
-                    console.error("Error parsing JSON:", parseError, line);
-                    setError("Error processing response from server.");
+
+                    if (jsonChunk.response) {
+                        setMessages((prevMessages) => {
+                        const existingAssistantMessageIndex = prevMessages.findIndex(
+                            (msg) => msg.id === newAssistantMessageId
+                        );
+
+                            if (existingAssistantMessageIndex !== -1) {
+                                const updatedMessages = [...prevMessages];
+                                updatedMessages[existingAssistantMessageIndex] = {
+                                ...updatedMessages[existingAssistantMessageIndex],
+                                parts: [{ text: updatedMessages[existingAssistantMessageIndex].parts[0].text + jsonChunk.response }],
+                                };
+                                return updatedMessages;
+                            } else {
+                                const newAssistantMessage: FormattedChatMessage = {
+                                role: 'assistant',
+                                parts: [{ text: jsonChunk.response }],
+                                id: newAssistantMessageId,
+                                };
+                                return [...prevMessages, newAssistantMessage];
+                            }
+                        });
+                    }
+                    } catch (parseError) {
+                        if (parseError instanceof DOMException && parseError.name === 'AbortError') {
+                            return; // Expected
+                        }
+                        console.error("Error parsing JSON:", parseError, line);
+                        setError("Error processing response from server.");
+                    }
+                }
                 }
             }
-            }
-        }
         } catch (err: any) {
             if (err instanceof DOMException && err.name === 'AbortError') {
                 console.log("Fetch aborted"); // Expected
@@ -157,10 +160,9 @@ export const useChatLogic = () => {
         } finally {
             setIsGenerating(false);
             setStreamedMessageId(null);
-            setAbortController(null); // Reset the controller
-
+            setAbortController(null);
         }
-    }, [messages, input, abortController, selectedChatId, getToken]); // Correct dependencies
+    }, [messages, input, abortController, selectedChatId, getToken]);
 
     const createNewChat = useCallback(async () => {
         //abort any ongoing requests
@@ -173,51 +175,49 @@ export const useChatLogic = () => {
         setInput('');
         setAbortController(null);
 
-
         try {
-          const token = await getToken({ template: "kvbackend" }); // Get token.  IMPORTANT!
-          if (!token) {
+            const token = await getToken({ template: "kvbackend" }); // Get token.  IMPORTANT!
+            if (!token) {
             throw new Error("Authentication token not available.");
-          }
-          const response = await fetch('http://localhost:8000/api/chats/create', {
+            }
+            const response = await fetch('http://localhost:8000/api/chats/create', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`, // Include the token
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`, // Include the token
             },
             body: JSON.stringify({
-              user_id: "PLACEHOLDER", // This is now handled on the backend.  Remove from here.
-              title: null, // Or a default title
+                user_id: "PLACEHOLDER",
+                title: null, // Or a default title
             }),
-          });
+            });
 
-          if (!response.ok) {
+            if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || response.statusText);
-          }
+            }
 
-          const data: { chat_id: string } = await response.json(); // Get chat_id
-          
-          setSelectedChatId(data.chat_id); // Set the selected chat ID.  ESSENTIAL.
-          setAbortController(null);
-          // Update the URL with the new chat ID
-          setChats(prevChats => [{ chatId: data.chat_id, title: `Chat ${data.chat_id.substring(0,8)}`, userId: '', createdAt: Date.now() }, ...prevChats]);
+            const data: { chat_id: string } = await response.json(); // Get chat_id
+            setSelectedChatId(data.chat_id); // Set the selected chat ID.  ESSENTIAL.
+            setAbortController(null);
+            router.push(`/raven/c/${data.chat_id}`); // Update the URL with the new chat ID
+            setChats(prevChats => [{ chatId: data.chat_id, title: `New Chat`, userId: '', createdAt: Date.now() }, ...prevChats]);
 
         } catch (error: any) {
-          setError(error.message);
+            setError(error.message);
         }
-      }, [getToken, setSelectedChatId, setMessages, setInput, abortController, router]); // Include getToken
+    }, [getToken, setSelectedChatId, setMessages, setInput, abortController, router]); // Include getToken
 
     const loadChat = useCallback(async (chatId: string) => {
         if (abortController) {
-            abortController.abort(); // Cancel any ongoing requests
+            abortController.abort();
         }
 
         setIsLoading(true);
         setError(null);
 
-        setSelectedChatId(chatId); // Set the selected chat ID *first*
-        setMessages([]); // Clear existing messages *before* fetching new ones
+        setSelectedChatId(chatId);
+        setMessages([]);
 
         try {
             const token = await getToken({ template: "kvbackend" });
@@ -234,21 +234,21 @@ export const useChatLogic = () => {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || response.statusText);
             }
-
             const data = await response.json();
-            // Convert timestamps and set messages
+            router.push(`/raven/c/${chatId}`); // Update URL with chatId
+
             const formattedMessages = data.map((message: any) => ({
                 ...message,
                 timestamp: new Date(message.timestamp * 1000),
                 parts: [{ text: message.content }],
             }));
-            setMessages(formattedMessages); // Set messages for the selected chat
+            setMessages(formattedMessages);
 
         } catch (error: any) {
             setError(error.message);
         } finally {
             setIsLoading(false);
-            setAbortController(null); // Reset abort controller
+            setAbortController(null);
         }
     }, [getToken, setSelectedChatId, setMessages, abortController, router]);
 
@@ -265,6 +265,7 @@ export const useChatLogic = () => {
             headers: {
                 'Authorization': `Bearer ${token}`, // Include the token
             }
+
             });
             if (!response.ok) {
             const errorData = await response.json();
@@ -308,14 +309,15 @@ export const useChatLogic = () => {
             if (selectedChatId === chatId) {
                 setSelectedChatId(null);
                 setMessages([]); // Clear messages if the current chat is deleted
+                await createNewChat();
             }
-
+            // router.push(`/raven`);
         } catch (error: any) {
             setError(error.message || 'Failed to delete chat.');
         } finally {
             setAbortController(null);
         }
-    }, [abortController, getToken, setChats, selectedChatId, setSelectedChatId, setMessages]); // Add dependencies
+    }, [abortController, getToken, setChats, selectedChatId, setSelectedChatId, setMessages]);
 
     const renameChat = useCallback(async (chatId: string, newTitle: string) => {
         console.log("renameChat called with chatId:", chatId, "newTitle:", newTitle); // ADD THIS

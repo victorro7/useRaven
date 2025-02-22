@@ -13,7 +13,7 @@ export default function LandingPage() {
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-        router.push('/choose'); // Redirect to /choose if signed in
+          router.push('/choose'); // Redirect to /choose if signed in
         }
     }, [isLoaded, isSignedIn, router]);
 

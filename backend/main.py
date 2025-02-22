@@ -15,7 +15,6 @@ from typing import AsyncGenerator
 from clerk_backend_api import Clerk
 from clerk_backend_api.jwks_helpers import AuthenticateRequestOptions
 
-
 load_dotenv()
 
 app = FastAPI()
@@ -47,7 +46,7 @@ class ChatRequest(BaseModel):
     messages: list[Message]
     chatId: Optional[str] = None
 
-class ChatCreateRequest(BaseModel):  # For creating new chats
+class ChatCreateRequest(BaseModel):
     user_id: str  # Get from Clerk
     title: Optional[str] = None
 
@@ -63,7 +62,7 @@ class ChatMessage(BaseModel): #for returning chat messages.
 class Chat(BaseModel): #for returning chats.
     chatId: str
     userId: str
-    title: str
+    title: Optional[str]
     createdAt: float
 # --- Pydantic Models ---
 
@@ -161,7 +160,7 @@ async def create_chat(chat_create_request: ChatCreateRequest, user_id: str = Dep
         await db.execute('''
             INSERT INTO raven_chats (id, user_id, title, created_at)
             VALUES ($1, $2, $3, NOW())
-        ''', chat_id, user_id, chat_create_request.title or f"Chat {chat_id[:8]}")
+        ''', chat_id, user_id, "New Chat")
         return ChatCreateResponse(chat_id=chat_id)
     except Exception as e:
         print(f"Database error: {e}")
@@ -228,7 +227,7 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
 
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-
+    print("here")
     if(len(chat_request.messages) >= 1):
         try:
             chat_id = chat_request.chatId
