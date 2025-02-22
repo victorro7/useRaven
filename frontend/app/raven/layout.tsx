@@ -12,13 +12,13 @@ interface LayoutProps {
 }
 
 export default function RavenLayout({ children }: LayoutProps) {
-    const { messages, isLoading, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat, loadChat } = useChatLogic();
+    const { messages, input, setInput, isLoading, error, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat, loadChat } = useChatLogic();
     const { user, isLoaded, isSignedIn } = useUser();
     const [hasInteracted, setHasInteracted] = useState(false);
 
     // Fetch chats on component mount (or user login)
     useEffect(() => {
-      const fetchData = async () => { //named function
+      const fetchData = async () => {
         if (isSignedIn) {
           await fetchChats(); // Await fetchChats
         }
@@ -48,16 +48,16 @@ export default function RavenLayout({ children }: LayoutProps) {
     }
     const userName = user?.firstName || 'User';
 
-  return (
-    <div className="flex h-screen bg-[#09090b] text-black">
-      <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} fetchChats={fetchChats}/>
-      <div className="flex-grow flex flex-col">
-        <Navbar title="Raven" />
-        {/* This is where the page content will be rendered */}
-        <main className="flex-grow overflow-y-auto p-2 sm:p-4">
-          {children}
-        </main>
+    return (
+      <div className="flex h-screen bg-[#09090b] text-black">
+        <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} fetchChats={fetchChats}/>
+        <div className="flex-grow flex flex-col">
+          <Navbar title="Raven" />
+          {/* This is where the page content will be rendered */}
+          <main className="flex-grow overflow-y-auto p-2 sm:p-4">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
-  );
+    );
 }

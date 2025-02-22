@@ -55,6 +55,9 @@ export const useChatLogic = () => {
 
         // Create a *new* AbortController for this request
         const newAbortController = new AbortController();
+        if(newAbortController.signal.aborted){
+            return;
+        }
         setAbortController(newAbortController); // Store for later
 
         try {
@@ -70,7 +73,7 @@ export const useChatLogic = () => {
                 })),
                 chatId: selectedChatId, // Send chatId separately
             };
-
+            
             const response = await fetch('http://localhost:8000/chat', {
                 method: 'POST',
                 headers: {
@@ -81,7 +84,6 @@ export const useChatLogic = () => {
                 signal: newAbortController.signal,
             });
 
-            
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || response.statusText);
@@ -98,7 +100,6 @@ export const useChatLogic = () => {
             // Add a placeholder for the *assistant* message *immediately*.  This is key.
             setMessages(prevMessages => [
                 ...prevMessages,
-                newUserMessage,
                 {
                     role: 'assistant',
                     parts: [{ text: '' }], // Start with an empty string for the assistant's message
@@ -167,7 +168,6 @@ export const useChatLogic = () => {
             }
         } catch (err: any) {
             if (err instanceof DOMException && err.name === 'AbortError') {
-                console.log("Fetch aborted"); // Expected
             } else {
                 setError(err.message || "An unexpected error occurred.");
             }
@@ -176,7 +176,7 @@ export const useChatLogic = () => {
             setStreamedMessageId(null);
             setAbortController(null);
         }
-    }, [messages, input, abortController, selectedChatId, getToken]);
+    }, [messages, input, getToken]);
 
     const createNewChat = useCallback(async () => {
         //abort any ongoing requests
@@ -219,7 +219,7 @@ export const useChatLogic = () => {
         } catch (error: any) {
             setError(error.message);
         }
-    }, [getToken, setSelectedChatId, setMessages, setInput, abortController, router]); // Include getToken
+    }, [getToken, router]); // Include getToken
 
     const loadChat = useCallback(async (chatId: string) => {
         if (abortController) {
@@ -263,7 +263,7 @@ export const useChatLogic = () => {
             setIsLoading(false);
             setAbortController(null);
         }
-    }, [getToken, setSelectedChatId, setMessages, abortController, router]);
+    }, [getToken, router]);
 
     const fetchChats = useCallback(async () => {
         setIsLoading(true);
@@ -333,10 +333,9 @@ export const useChatLogic = () => {
         } finally {
             setAbortController(null);
         }
-    }, [abortController, getToken, setChats, selectedChatId, setSelectedChatId, setMessages]);
+    }, [abortController, getToken, setChats, selectedChatId, setSelectedChatId, setMessages, createNewChat]);
 
     const renameChat = useCallback(async (chatId: string, newTitle: string) => {
-        console.log("renameChat called with chatId:", chatId, "newTitle:", newTitle); // ADD THIS
         try {
             const token = await getToken({ template: "kvbackend" });
             if (!token) {
@@ -355,7 +354,6 @@ export const useChatLogic = () => {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || response.statusText);
             }
-            console.log("Rename successful, updating chats state"); // ADD THIS
 
             setChats(prevChats =>
                 prevChats.map(chat =>
@@ -375,9 +373,7 @@ export const useChatLogic = () => {
             initialLoad.current = true;
             await fetchChats(); // Fetch existing chats
             // Only create a *new* chat if there are no existing chats.
-            // console.log("no chats")
             if (chats.length === 0 && !chatId) {
-                // console.log("create")
                 await createNewChat();
                 await fetchChats();
             }

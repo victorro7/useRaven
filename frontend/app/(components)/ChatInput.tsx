@@ -2,14 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import UploadIcon from './icons/UploadIcon';
 import SendIcon from './icons/SendIcon';
+import { FormattedChatMessage } from './useChatLogic';
 
 interface ChatInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onSubmit: (e: React.FormEvent, data?: { imageUrl?: string; imageFiles?: File[] }) => void;
+    onSubmit: (e: React.FormEvent, updatedMessages: FormattedChatMessage[]) => void;
+    messages: FormattedChatMessage[];
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messages }) => {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -29,15 +31,27 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit }) => {
     setImageUrls((prevUrls) => prevUrls.filter((_, index) => index !== indexToRemove));
   };
 
+  // const handleSubmit = (event: React.FormEvent) => {
+  //   event.preventDefault();
+  //   const data = {
+  //     imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined,
+  //     imageFiles: imageFiles,
+  //   };
+  //   onSubmit(event, data);
+  //   setImageUrls([]);
+  //   setImageFiles([]);
+  // };
   const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const data = {
-      imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined,
-      imageFiles: imageFiles,
-    };
-    onSubmit(event, data);
-    setImageUrls([]);
-    setImageFiles([]);
+      event.preventDefault();
+      const newUserMessage: FormattedChatMessage = { //create new user message
+          role: 'user',
+          parts: [{ text: value }],
+          id: `user-${Date.now()}`,
+      };
+      const updatedMessages = [...messages, newUserMessage];
+      onSubmit(event, updatedMessages); // Pass updatedMessages
+      setImageUrls([]);
+      setImageFiles([]);
   };
 
   const borderRadiusClass = imageUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';

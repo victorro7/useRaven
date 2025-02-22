@@ -15,20 +15,24 @@ interface ChatPageParams {
 }
 
 export default function ChatPage() {
-  const { messages, input, setInput, handleFormSubmit, isLoading, error, loadChat } = useChatLogic();
   const params = useParams();
   const chatId = params.chatId as string;
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
   const { user } = useUser();
-
+  const { messages, input, setInput, handleFormSubmit, isLoading, error, loadChat } = useChatLogic();
 
   useEffect(() => {
     if (chatId) {
       loadChat(chatId);
     }
   }, [chatId, loadChat]);
+
+  // Show title on initial load and new chat
+  useEffect(() => {
+    setShowTitle(!isLoading && (messages.length === 0));
+  }, [isLoading, messages]);
 
   useEffect(() => {
     if (!hasInteracted) {
@@ -39,8 +43,8 @@ export default function ChatPage() {
   }, [hasInteracted, input]);
 
   const setPrompt = (prompt: string) => {
-      setInput(prompt);
-      setShowSuggestions(false);
+    setInput(prompt);
+    setShowSuggestions(false);
   };
 
   if (isLoading) {
@@ -63,51 +67,55 @@ export default function ChatPage() {
   }
 
   const userName = user?.firstName || '';
+
   return (
-    <div className="w-full sm:max-w-2xl mx-auto flex-grow overflow-y-auto">
+    <div className="w-full sm:max-w-2xl mx-auto flex flex-col h-screen"> {/* Added flex-col and h-screen */}
         {/* Intro */}
-        {/* {showTitle &&  (
-          <div className="w-full flex justify-center absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc] ">
-            Hey {userName}! Welcome to Raven
-            </h2>
-          </div>
-        )} */}
+        {showTitle && (
+            <div className="w-full flex flex-col items-center">
+                <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc] mb-4">
+                    Hey {userName}! Welcome to Raven
+                </h2>
+            </div>
+        )}
         {/* Intro */}
         <div className="flex-grow overflow-y-auto">
             {messages.map((message) => (
-            <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.parts.map((p) => p.text).join('')}
-                imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
-            />
+                <ChatMessage
+                    key={message.id}
+                    role={message.role}
+                    content={message.parts.map((p) => p.text).join('')}
+                    imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
+                />
             ))}
         </div>
-        {/* Suggestions */}
-        {(showSuggestions && showTitle) && (
-            <div className=" p-2 w-full max-w-2xl mx-auto">
-              <div className="flex justify-center">
-                <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
-                  {suggestions.map((suggestion) => (
-                    <SuggestionChip
-                      key={suggestion.title}
-                      icon={suggestion.icon}
-                      title={suggestion.title}
-                      content={suggestion.content}
-                      onClick={() => setPrompt(suggestion.prompt)}
-                    />
-                  ))}
+        {/* Suggestions and Input at the bottom */}
+        <div className="sticky bottom-0 p-4 shadow-md w-full"> {/* Added w-full */}
+            {/* Suggestions */}
+            {(showSuggestions && showTitle) && (
+                <div className="mb-4"> {/* Added mb-4 for spacing */}
+                    <div className="flex justify-center">
+                        <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
+                            {suggestions.map((suggestion) => (
+                                <SuggestionChip
+                                    key={suggestion.title}
+                                    icon={suggestion.icon}
+                                    title={suggestion.title}
+                                    content={suggestion.content}
+                                    onClick={() => setPrompt(suggestion.prompt)}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
-              </div>
+            )}
+            {/* Suggestions */}
+            {/* Input */}
+            <div className="w-full max-w-2xl mx-auto">
+                <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} messages={messages}/>
             </div>
-        )}
-        {/* Suggestions */}
-        <div className="sticky bottom-0 p-4 shadow-md">
-            <div className="w-full max-w-2xl mx-auto ">
-                <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} />
-            </div>
+            {/* Input */}
         </div>
     </div>
-  );
+);
 }

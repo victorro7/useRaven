@@ -24,6 +24,8 @@
     "clsx": "^2.1.1",
     "formidable": "^3.5.2",
     "framer-motion": "^12.4.3",
+    "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.475.0",
     "markdown-to-jsx": "^7.7.3",
     "motion": "^12.4.3",
@@ -37,6 +39,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.15",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
