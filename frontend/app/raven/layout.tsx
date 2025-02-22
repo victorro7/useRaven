@@ -48,7 +48,6 @@ export default function RavenLayout({ children }: LayoutProps) {
     }
     const userName = user?.firstName || 'User';
 
-
   return (
     <div className="flex h-screen bg-[#09090b] text-black">
       <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} fetchChats={fetchChats}/>

@@ -1,5 +1,5 @@
 // app/(components)/useChatLogic.ts
-import { useState, useCallback, useEffect} from 'react';
+import { useState, useCallback, useEffect, useRef} from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useRouter, usePathname, useParams } from 'next/navigation';
 
@@ -27,6 +27,10 @@ export const useChatLogic = () => {
     const [abortController, setAbortController] = useState<AbortController | null>(null);
     const { getToken } = useAuth();
     const router = useRouter();
+    const params = useParams();
+    const chatId = params.chatId as string;
+    const { isLoaded, isSignedIn } = useUser();
+    const initialLoad = useRef(false);
 
     const handleFormSubmit = useCallback(async (event: React.FormEvent) => {
         event.preventDefault();
@@ -77,6 +81,7 @@ export const useChatLogic = () => {
                 signal: newAbortController.signal,
             });
 
+            
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.detail || response.statusText);
@@ -90,7 +95,16 @@ export const useChatLogic = () => {
             const newAssistantMessageId = generateId("assistant");
             setStreamedMessageId(newAssistantMessageId);
 
-
+            // Add a placeholder for the *assistant* message *immediately*.  This is key.
+            setMessages(prevMessages => [
+                ...prevMessages,
+                newUserMessage,
+                {
+                    role: 'assistant',
+                    parts: [{ text: '' }], // Start with an empty string for the assistant's message
+                    id: newAssistantMessageId,
+                },
+            ]);
 
             let partialResponse = "";
             while (true) {
@@ -193,16 +207,15 @@ export const useChatLogic = () => {
             });
 
             if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || response.statusText);
+                const errorData = await response.json();
+                throw new Error(errorData.detail || response.statusText);
             }
 
             const data: { chat_id: string } = await response.json(); // Get chat_id
             setSelectedChatId(data.chat_id); // Set the selected chat ID.  ESSENTIAL.
             setAbortController(null);
-            router.push(`/raven/c/${data.chat_id}`); // Update the URL with the new chat ID
+            router.push(`/raven/chat/${data.chat_id}`); // Update the URL with the new chat ID
             setChats(prevChats => [{ chatId: data.chat_id, title: `New Chat`, userId: '', createdAt: Date.now() }, ...prevChats]);
-
         } catch (error: any) {
             setError(error.message);
         }
@@ -235,7 +248,7 @@ export const useChatLogic = () => {
                 throw new Error(errorData.detail || response.statusText);
             }
             const data = await response.json();
-            router.push(`/raven/c/${chatId}`); // Update URL with chatId
+            router.push(`/raven/chat/${chatId}`); // Update URL with chatId
 
             const formattedMessages = data.map((message: any) => ({
                 ...message,
@@ -311,7 +324,10 @@ export const useChatLogic = () => {
                 setMessages([]); // Clear messages if the current chat is deleted
                 await createNewChat();
             }
-            // router.push(`/raven`);
+            // else {
+            //     router.push(`/raven`);
+            // }
+
         } catch (error: any) {
             setError(error.message || 'Failed to delete chat.');
         } finally {
@@ -352,6 +368,24 @@ export const useChatLogic = () => {
             setError(error.message || 'Failed to rename chat.');
         }
     }, [getToken, setChats]);
+
+    useEffect(() => {
+        const handleInitialLoad = async () => {
+        if (isSignedIn && !chatId && !initialLoad.current) {
+            initialLoad.current = true;
+            await fetchChats(); // Fetch existing chats
+            // Only create a *new* chat if there are no existing chats.
+            // console.log("no chats")
+            if (chats.length === 0 && !chatId) {
+                // console.log("create")
+                await createNewChat();
+                await fetchChats();
+            }
+        }
+        };
+
+        handleInitialLoad();
+    }, [isSignedIn, fetchChats, createNewChat]);
 
     return { messages, input, setInput, isLoading, isGenerating, error, handleFormSubmit, setMessages, loadChat, createNewChat, chats, setChats, fetchChats, renameChat, deleteChat };
 };

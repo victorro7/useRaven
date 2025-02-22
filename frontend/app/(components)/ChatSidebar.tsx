@@ -104,7 +104,7 @@ export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, rename
                               }}
                           >
                           {/* Display Chat Title (Editable or Not) */}
-                          {editingChatId === chat.chatId 
+                          {editingChatId === chat.chatId
                           ? (
                               <input
                                   ref={inputRef}
