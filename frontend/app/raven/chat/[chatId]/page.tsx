@@ -1,6 +1,6 @@
 // app/raven/chat/[chatId]/page.tsx
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useChatLogic } from '@/app/(components)/useChatLogic';
 import ChatMessage from '@/app/(components)/ChatMessage';
@@ -22,6 +22,11 @@ export default function ChatPage() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const { user } = useUser();
   const { messages, input, setInput, handleFormSubmit, isLoading, error, loadChat } = useChatLogic();
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     if (chatId) {
@@ -69,31 +74,34 @@ export default function ChatPage() {
   const userName = user?.firstName || '';
 
   return (
-    <div className="w-full sm:max-w-2xl mx-auto flex flex-col h-screen"> {/* Added flex-col and h-screen */}
+    <div className="bg-[#09090b] w-full mx-auto flex flex-col h-full">
         {/* Intro */}
         {showTitle && (
-            <div className="w-full flex flex-col items-center">
-                <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc] mb-4">
+            <div className="flex items-center justify-center h-full">
+                <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
                     Hey {userName}! Welcome to Raven
                 </h2>
             </div>
         )}
-        {/* Intro */}
-        <div className="flex-grow overflow-y-auto">
-            {messages.map((message) => (
-                <ChatMessage
-                    key={message.id}
-                    role={message.role}
-                    content={message.parts.map((p) => p.text).join('')}
-                    imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
-                />
-            ))}
+
+         {/* Scrollable Chat Messages with Height Limit */}
+        <div className="w-full sm:max-w-2xl mx-auto flex-grow relative">
+            <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
+                {messages.map((message) => (
+                    <ChatMessage
+                        key={message.id}
+                        role={message.role}
+                        content={message.parts.map((p) => p.text).join('')}
+                        imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
+                    />
+                ))}
+            </div>
         </div>
         {/* Suggestions and Input at the bottom */}
-        <div className="sticky bottom-0 p-4 shadow-md w-full"> {/* Added w-full */}
+        <div className="p-4  w-full bg-[#09090b]">
             {/* Suggestions */}
             {(showSuggestions && showTitle) && (
-                <div className="mb-4"> {/* Added mb-4 for spacing */}
+                <div className="mb-4">
                     <div className="flex justify-center">
                         <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
                             {suggestions.map((suggestion) => (
@@ -102,7 +110,7 @@ export default function ChatPage() {
                                     icon={suggestion.icon}
                                     title={suggestion.title}
                                     content={suggestion.content}
-                                    onClick={() => setPrompt(suggestion.prompt)}
+                                    onClick={() => setInput(suggestion.prompt || '')}
                                 />
                             ))}
                         </div>

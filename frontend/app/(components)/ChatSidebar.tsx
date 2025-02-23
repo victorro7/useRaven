@@ -146,7 +146,7 @@ export function ChatSidebar({ chats, loadChat, createNewChat, deleteChat, rename
                 ))}
             </div>
           </div>
-          {/* User Profile/Logout (Same as before)*/}
+          {/* User Profile/Logout*/}
             <div>
             {user && (
               <SidebarLink

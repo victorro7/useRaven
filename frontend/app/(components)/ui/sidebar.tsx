@@ -116,13 +116,13 @@ export const MobileSidebar = ({
     <>
       <div
         className={cn(
-          "h-10 px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-neutral-100 dark:bg-neutral-800 w-full"
+          "h-full px-4 py-4 flex flex-row md:hidden  items-center justify-between bg-[#09090b] w-1/6"
         )}
         {...props}
       >
         <div className="flex justify-end z-20 w-full">
           <IconMenu2
-            className="text-neutral-800 dark:text-neutral-200"
+            className="text-white"
             onClick={() => setOpen(!open)}
           />
         </div>
@@ -188,16 +188,17 @@ export const SidebarLink = ({
         className,
         disabled ? "opacity-50 cursor-not-allowed" : ""
       )}
-      onClick={handleClick}
-      {...props}
       onClick={(e) => {
           if (disabled) {
-            e.preventDefault(); // Prevent click if disabled
-          } else if (onClick) {
-            onClick(e)
+              e.preventDefault();
+          } else {
+              if (onClick) {
+                  onClick(e);
+              }
           }
-        }}
-    >
+      }}
+        {...props}
+      >
       {link.icon}
 
       <motion.span
