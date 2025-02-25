@@ -1,19 +1,20 @@
 // MobileLayout.tsx
 import React from 'react';
 import Navbar from '../(components)/Navbar';
-import { ChatSidebar } from '../(components)/ChatSidebar';
+import { ChatSidebar } from '../(components)/useChat/ChatSidebar';
 
 interface MobileLayoutProps {
     children: React.ReactNode;
     chats: any[]; // Add props for ChatSidebar
     loadChat: (chatId: string) => void;
     createNewChat: () => void;
-    deleteChat: (chatId: string) => void;
+    deleteChat: (chatId: string, currentChatId: string | null) => void;
     renameChat: (chatId: string, newName: string) => void;
     messages: any[];
     fetchChats: ()  => Promise<void>;
+    selectedChatId: string | null;
+    disableNewChatButton: boolean;
 }
-
 const MobileLayout: React.FC<MobileLayoutProps> = ({
     children,
     chats,
@@ -22,7 +23,9 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     deleteChat,
     renameChat,
     messages,
-    fetchChats
+    fetchChats,
+    selectedChatId,
+    disableNewChatButton,
 }) => {
     return (
         <div className="flex flex-col h-screen text-black">
@@ -35,6 +38,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
                     renameChat={renameChat}
                     messages={messages}
                     fetchChats={fetchChats}
+                    selectedChatId={selectedChatId}
+                    disableNewChatButton={disableNewChatButton}
                 />
                 <Navbar title="Raven" />
             </div>

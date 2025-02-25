@@ -1,33 +1,53 @@
 // app/raven/layout.tsx
 "use client"
 import React, { useState, useEffect } from "react";
-import { ChatSidebar } from '../(components)/ChatSidebar';
+import { useParams } from 'next/navigation';
+import { ChatSidebar } from '../(components)/useChat/ChatSidebar';
 import Navbar from '../(components)/Navbar';
-import { useChatLogic } from '../(components)/useChatLogic';
 import { useUser } from '@clerk/nextjs';
 import Spinner from '@/app/(components)/icons/Spinner';
-import MobileLayout from '@/app/raven/mobileLayout';
+import MobileLayout from '@/app/raven/MobileLayout';
+import { useChats } from '@/app/(components)/useChat/useChats';
+import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
+import { useChatState } from '@/app/(components)/useChat/useChatState';
 
 interface LayoutProps {
     children: React.ReactNode;
+    messages: any[];
 }
 
 export default function RavenLayout({ children }: LayoutProps) {
-    const { messages, input, setInput, isLoading, error, createNewChat, chats, setChats, fetchChats, deleteChat, renameChat, loadChat } = useChatLogic();
-    const { user, isLoaded, isSignedIn } = useUser();
-    const [hasInteracted, setHasInteracted] = useState(false);
+    const params = useParams();
+    const chatId = params.chatId as string;
+    const { isLoaded, isSignedIn } = useUser();
     const [isMobile, setIsMobile] = useState(false); // Add isMobile state
+    const { input, selectedChatId, setSelectedChatId } = useChatState();
+    const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
+    const { messages, isMessagesLoading, loadChatMessages, submitMessage} = useChatMessages();
 
-    // Fetch chats on component mount (or user login)
+    // --- COMBINED INITIAL LOAD AND CHAT LOADING ---
     useEffect(() => {
-        const fetchData = async () => {
-            if (isSignedIn) {
-                await fetchChats(); // Await fetchChats
+        const handleInitialLoad = async () => {
+        if (isSignedIn) {
+            await fetchChats(); // Always fetch chats first
+            if (chatId) {
+                // If there's a chatId in the URL, load that chat
+                setSelectedChatId(chatId);
+                await loadChatMessages(chatId);
+
+            } else if (chats.length === 0) {
+            // If there's no chatId AND no existing chats, create a new chat
+                // console.log(chats.length)
+                // await createNewChat();
             }
+            // If there's no chatId and there ARE existing chats, do nothing (display the chat list)
+        }
         };
 
-        fetchData();
-    }, [isSignedIn, fetchChats]);
+        handleInitialLoad();
+        // All necessary dependencies are included:
+    }, [isSignedIn, chatId, setSelectedChatId, fetchChats, createNewChat, chats.length, loadChatMessages]);
+
 
     useEffect(() => {
         const handleResize = () => {
@@ -47,18 +67,26 @@ export default function RavenLayout({ children }: LayoutProps) {
         );
     }
 
+    // const disableNewChatButton = (selectedChatId && chats.length == 0);
+    const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
+                                 !(!selectedChatId && chats.length == 0);
     
+                                 // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
+    //                              (!selectedChatId && chats.length == 0);// Disable if not in a chat AND chats exist
+ 
     if (isMobile) {
         return (
           <div className="h-screen bg-[#09090b]">
             <MobileLayout
                 chats={chats}
-                loadChat={loadChat}
+                loadChat={loadChatMessages}
                 createNewChat={createNewChat}
                 deleteChat={deleteChat}
                 renameChat={renameChat}
                 messages={messages}
                 fetchChats={fetchChats}
+                selectedChatId={selectedChatId}
+                disableNewChatButton={disableNewChatButton}
             >
                 {children}
             </MobileLayout>
@@ -67,8 +95,8 @@ export default function RavenLayout({ children }: LayoutProps) {
     }
 
     return (
-        <div className="flex h-screen bg-[#09090b] text-black">
-            <ChatSidebar chats={chats} loadChat={loadChat} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} fetchChats={fetchChats} />
+            <div className="flex h-screen bg-[#09090b] text-black">
+            <ChatSidebar disableNewChatButton={disableNewChatButton} chats={chats} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} selectedChatId={selectedChatId} />
             <div className="flex flex-col flex-grow">
                 <Navbar title="Raven" />
                 <main className="flex-grow bg-[#09090b]">
@@ -76,5 +104,6 @@ export default function RavenLayout({ children }: LayoutProps) {
                 </main>
             </div>
         </div>
+        
     );
 }

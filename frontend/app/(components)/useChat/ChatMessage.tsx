@@ -50,12 +50,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                     overrides: {
                       h1: {
                         props: {
-                          className: 'text-2xl font-bold mb-2', // Style for h1
+                          className: 'text-2xl font-bold mb-2 whitespace-pre-wrap', // Style for h1
                         },
                       },
                       h2: {
                         props: {
-                          className: 'text-xl font-semibold mb-2', // Style for h2
+                          className: 'text-xl font-semibold mb-2 whitespace-pre-wrap', // Style for h2
                         },
                       },
                       h3: {
@@ -65,7 +65,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                         },
                       p: {
                         props: {
-                          className: 'mb-2',
+                          className: 'mb-2 whitespace-pre-wrap',
                         },
                       },
                       li: {

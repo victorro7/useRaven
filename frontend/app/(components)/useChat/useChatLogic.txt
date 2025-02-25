@@ -78,7 +78,7 @@ export const useChatLogic = () => {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer  bnZStoken}`,
                 },
                 body: JSON.stringify(requestBody),
                 signal: newAbortController.signal,

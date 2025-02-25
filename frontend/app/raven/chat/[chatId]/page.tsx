@@ -2,13 +2,15 @@
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { useChatLogic } from '@/app/(components)/useChatLogic';
-import ChatMessage from '@/app/(components)/ChatMessage';
-import ChatInput from '@/app/(components)/ChatInput';
+import ChatMessage from '@/app/(components)/useChat/ChatMessage';
+import ChatInput from '@/app/(components)/useChat/ChatInput';
 import Spinner from '@/app/(components)/icons/Spinner';
 import LogoIcon from '@/app/(components)/icons/LogoIcon';
 import SuggestionChip from '@/app/(components)/SuggestionChip';
 import { useUser } from '@clerk/nextjs';
+import { useChats } from '@/app/(components)/useChat/useChats';
+import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
+import { useChatState } from '@/app/(components)/useChat/useChatState';
 
 interface ChatPageParams {
   chatId: string;
@@ -20,24 +22,34 @@ export default function ChatPage() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const { user } = useUser();
-  const { messages, input, setInput, handleFormSubmit, isLoading, error, loadChat } = useChatLogic();
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { user, isSignedIn } = useUser();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
+  const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
+  const { messages, loadChatMessages, submitMessage, isMessagesLoading, messagesError } = useChatMessages();
+
+  const handleFormSubmit = async (event: React.FormEvent) => {
+      event.preventDefault();
+      if (!input.trim()) return;
+      setInput('');
+      await submitMessage(input);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   useEffect(() => {
-    if (chatId) {
-      loadChat(chatId);
+    if (selectedChatId) {
+      loadChatMessages(selectedChatId);
     }
-  }, [chatId, loadChat]);
+  }, [selectedChatId, loadChatMessages]);
 
   // Show title on initial load and new chat
   useEffect(() => {
     setShowTitle(!isLoading && (messages.length === 0));
-  }, [isLoading, messages]);
+  }, [isLoading, messages.length]);
 
   useEffect(() => {
     if (!hasInteracted) {
@@ -52,7 +64,7 @@ export default function ChatPage() {
     setShowSuggestions(false);
   };
 
-  if (isLoading) {
+  if (isLoading || isMessagesLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Spinner size="lg" color="white" />
@@ -84,7 +96,11 @@ export default function ChatPage() {
             </div>
         )}
 
-         {/* Scrollable Chat Messages with Height Limit */}
+        {/* {(error || messagesError) && <p className="text-red-500">Error: {error || messagesError}</p>}
+        {!isLoading && !error && messages.length === 0 && (
+            <p className="text-gray-400">No messages yet. Start a conversation!</p>
+        )} */}
+        {/* Scrollable Chat Messages with Height Limit */}
         <div className="w-full sm:max-w-2xl mx-auto flex-grow relative">
             <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
                 {messages.map((message) => (
@@ -97,6 +113,7 @@ export default function ChatPage() {
                 ))}
             </div>
         </div>
+        {isGenerating && <p className="text-gray-400">Generating...</p>}
         {/* Suggestions and Input at the bottom */}
         <div className="p-4  w-full bg-[#09090b]">
             {/* Suggestions */}

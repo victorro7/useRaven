@@ -33,7 +33,6 @@ app.add_middleware(
 )
 # --- CORS ---
 
-
 # --- Pydantic Models ---
 class Message(BaseModel):
     role: str
@@ -227,7 +226,6 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
 
 @app.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-    print("here")
     if(len(chat_request.messages) >= 1):
         try:
             chat_id = chat_request.chatId
