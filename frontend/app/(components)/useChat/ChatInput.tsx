@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import UploadIcon from './icons/UploadIcon';
-import SendIcon from './icons/SendIcon';
-import { FormattedChatMessage } from './useChat/constants';
+import UploadIcon from '../icons/UploadIcon';
+import SendIcon from '../icons/SendIcon';
+import { FormattedChatMessage } from '../useChat/constants';
 
 interface ChatInputProps {
   value: string;

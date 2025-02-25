@@ -2,7 +2,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Markdown from 'markdown-to-jsx';
-import LogoIcon from './icons/LogoIcon';
+import LogoIcon from '../icons/LogoIcon';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system' | 'data';

@@ -1,7 +1,7 @@
 // app/(components)/ChatSidebar.tsx
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Sidebar, SidebarBody, SidebarLink } from "./ui/sidebar";
+import { Sidebar, SidebarBody, SidebarLink } from "../ui/sidebar";
 import { IconMessage2, IconPlus, IconTrash, IconEdit } from "@tabler/icons-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
