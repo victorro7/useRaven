@@ -8,9 +8,16 @@ const nextConfig = {
         port: '8000',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
     domains: ['img.clerk.com'], // Add this line
   },
+
   webpack(config) {
       config.module.rules.push({
           test: /\.svg$/i,

@@ -123,6 +123,11 @@ body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+::-webkit-scrollbar {
+    display: none;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

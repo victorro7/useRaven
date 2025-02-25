@@ -14,6 +14,10 @@ import uuid
 from typing import AsyncGenerator
 from clerk_backend_api import Clerk
 from clerk_backend_api.jwks_helpers import AuthenticateRequestOptions
+from google import genai
+from google.cloud import storage
+from google.genai import types
+from datetime import timedelta
 
 load_dotenv()
 
@@ -34,6 +38,14 @@ app.add_middleware(
 # --- CORS ---
 
 # --- Pydantic Models ---
+class PresignedUrlRequest(BaseModel):
+    filename: str
+    contentType: str
+
+class PresignedUrlResponse(BaseModel):
+    url: str  # The presigned URL for PUT
+    gcs_url: str  # The final, public URL of the object in GCS
+
 class Message(BaseModel):
     role: str
     parts: list[str]
@@ -65,10 +77,13 @@ class Chat(BaseModel): #for returning chats.
     createdAt: float
 # --- Pydantic Models ---
 
-# --- Gemini Setup (Keep This)---
-from google import genai
+# --- Gemini Setup ---
 client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
 # --- Gemini Setup ---
+
+# --- Google Cloud Storage Setup ---
+storage_client = storage.Client()
+# --- Google Cloud Storage Setup ---
 
 # --- Database Connection Pool ---
 async def get_db_pool():
@@ -147,6 +162,32 @@ async def get_current_user(request: Request):
 # --- Authentication (Clerk) - Using clerk-backend-api ---
 
 # --- API Endpoints ---
+@app.post("/api/upload-url", response_model=PresignedUrlResponse)
+async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = Depends(get_current_user)):
+    """Generates a presigned URL for uploading a file to GCS."""
+    try:
+        bucket_name = os.environ["GCS_BUCKET_NAME"]  # Get bucket name from environment variable
+        bucket = storage_client.bucket(bucket_name)
+
+        # Create a unique filename.  Good practice to prefix with user ID.
+        blob_name = f"uploads/{user_id}/{uuid4()}-{request_body.filename}"
+        blob = bucket.blob(blob_name)
+
+        # Generate the presigned URL
+        url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=15),  # URL expires in 15 minutes
+            method="PUT",  # Allow PUT requests (uploads)
+            content_type=request_body.contentType,
+        )
+
+        # Return *both* the presigned URL *and* the final GCS URL
+        return PresignedUrlResponse(url=url, gcs_url=f"https://storage.googleapis.com/{bucket_name}/{blob_name}")
+
+    except Exception as e:
+        print(f"Error generating presigned URL: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate upload URL")
+
 @app.post("/api/chats/create", response_model=ChatCreateResponse)
 async def create_chat(chat_create_request: ChatCreateRequest, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
     chat_id = str(uuid4())

@@ -101,7 +101,7 @@ export default function ChatPage() {
             <p className="text-gray-400">No messages yet. Start a conversation!</p>
         )} */}
         {/* Scrollable Chat Messages with Height Limit */}
-        <div className="w-full sm:max-w-2xl mx-auto flex-grow relative">
+        <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
             <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
                 {messages.map((message) => (
                     <ChatMessage

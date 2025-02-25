@@ -33,7 +33,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                 </div>
             )}
             <div className={`flex flex-col  ${ isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`p-2  max-w-prose ${messageClass}`}>
+              <div className={`p-2  max-w-prose ${messageClass} overflow-x-hidden`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', scrollbarGutter: 'stable'}}>
+                    {/* WebKit-specific scrollbar hiding */}
+                    <style jsx>{`
+                        .hide-scrollbar::-webkit-scrollbar {
+                        width: 0px; /* Hide scrollbar in WebKit browsers */
+                        }
+                    `}</style>
                     {imageUrl && (
                     <div style={{ position: 'relative', width: '100%', height: 'auto', maxWidth: '300px', maxHeight: '200px' }}>
                         <Image
@@ -76,13 +82,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                       pre: {
                         props: {
                           className:
-                            'mb-5 bg-gray-800 rounded-md p-2 overflow-x-auto text-sm whitespace-pre-wrap',
+                            'mb-5 bg-gray-800 rounded-md p-2 overflow-x-auto text-sm whitespace-pre-wrap hide-scrollbar',
+                            style: { wordBreak: 'break-all' }
                         },
                       },
                       code: {
                         props: {
                           className:
                             'mb-2 bg-gray-800 text-green-400 rounded px-1 py-0.5 font-mono text-sm',
+                            style: { wordBreak: 'break-all' }
                         },
                       },
                     },

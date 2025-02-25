@@ -67,13 +67,12 @@ export default function RavenLayout({ children }: LayoutProps) {
         );
     }
 
-    // const disableNewChatButton = (selectedChatId && chats.length == 0);
-    const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
-                                 !(!selectedChatId && chats.length == 0);
-    
-                                 // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
-    //                              (!selectedChatId && chats.length == 0);// Disable if not in a chat AND chats exist
- 
+    const disableNewChatButton = (!selectedChatId && chats.length == 0);
+    // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
+    //  (!selectedChatId && chats.length == 0);
+    // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
+    //(!selectedChatId && chats.length == 0);// Disable if not in a chat AND chats exist
+
     if (isMobile) {
         return (
           <div className="h-screen bg-[#09090b]">
