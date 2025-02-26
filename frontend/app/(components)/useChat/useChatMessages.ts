@@ -1,10 +1,11 @@
 // app/(components)/useChatMessages.ts
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useApiRequest } from './useApiRequest';
-import { FormattedChatMessage, generateId } from './constants';
+import { FormattedChatMessage, ChatMessagePart, generateId } from './constants';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useChatState } from './useChatState';
+import { useImageUpload } from './useImageUpload';
 
 export const useChatMessages = () => {
     const { makeRequest, loading: isMessagesLoading, error: messagesError, abortController } = useApiRequest();
@@ -13,6 +14,7 @@ export const useChatMessages = () => {
     const router = useRouter();
     const isMounted = useRef(true);
     const { getToken } = useAuth();
+    const { uploadImage, loading: isUploading, error: uploadError } = useImageUpload(); 
 
     useEffect(() => {
         isMounted.current = true;
@@ -25,11 +27,19 @@ export const useChatMessages = () => {
         setMessages([]);
         const data = await makeRequest<any[]>({ method: 'GET', path: `/api/chats/${chatId}` });
         if (data) {
-            const formattedMessages: FormattedChatMessage[] = data.map((message: any) => ({
-            role: message.role,
-            parts: [{ text: message.content.replace(/\\n/g, '\n') }],
-            id: message.messageId,
-            }));
+            const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
+                const parts: ChatMessagePart[] = [];
+                if (message.content && message.content.trim() !== "") {
+                    parts.push({ text: message.content.replace(/\\n/g, '\n')})
+                }
+                if(message.media_url && message.media_type === 'image'){
+                    parts.push({ text: message.media_url })
+                }
+                return {
+                role: message.role,
+                parts: parts, // Use the parts array
+                id: message.messageId,
+            }});
             if(isMounted.current) { // Check if mounted before setting state
                 setMessages(formattedMessages);
             }
@@ -40,37 +50,62 @@ export const useChatMessages = () => {
         }
     }, [makeRequest, router, setMessages]);
 
-    const submitMessage = useCallback(async (input: string) => {
-        const newUserMessage: FormattedChatMessage = {
+    const submitMessage = useCallback(
+        async (text: string, imageFiles: File[]) => {
+          const newUserMessage: FormattedChatMessage = {
             role: 'user',
-            parts: [{ text: input }],
+            parts: [], // Initialize parts as empty
             id: generateId('user'),
-        };
-
-        setMessages((prevMessages) => [...prevMessages, newUserMessage]);
-        const newAssistantMessageId = generateId('assistant');
-        setMessages((prevMessages) => [
-            ...prevMessages,
-            {
-            role: 'assistant',
-            parts: [{ text: '' }],
-            id: newAssistantMessageId,
-            },
-        ]);
-
-        // Ensure selectedChatId is available *before* making the request.
-        if (!selectedChatId) {
+          };
+            const newAssistantMessageId = generateId("assistant");
+    
+          if (!selectedChatId) {
             console.error("Cannot submit message: selectedChatId is null.");
-            return; // Prevent the API call if no chat is selected
-        }
-
-        const requestBody = {
+            return;
+          }
+    
+          // 1. Upload ALL images *first* (concurrently)
+          let imageUrls: string[] = [];
+          if (imageFiles.length > 0) {
+            try {
+              const uploadPromises = imageFiles.map(file => uploadImage(file));
+              imageUrls = (await Promise.all(uploadPromises)).filter((url): url is string => url !== null); //wait for all promises to resolve
+    
+              if (imageUrls.length !== imageFiles.length) {
+                console.error("Some image uploads failed."); // Not all images uploaded
+                //remove placeholder:
+                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId)) //remove the assistant
+                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id)) //remove failed message
+                return; // Stop processing
+              }
+              // Add all image URLs to the parts array
+              imageUrls.forEach(url => newUserMessage.parts.push({text: url}));
+    
+            } catch (error) {
+              console.error("Image upload error:", error);
+               //remove placeholder:
+              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId)) //remove the assistant
+              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id)) //remove failed message
+              return; // Stop processing
+            }
+          }
+    
+            // 2. Add text *after* image upload (if any)
+            if (text.trim() !== "") { // Only add if there is text.
+                newUserMessage.parts.push({ text });
+            }
+    
+            // Optimistically add the user message *and* a placeholder for the assistant message
+            setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: '' }], id: newAssistantMessageId }]);
+    
+          // 3. Construct request body *after* handling images and text
+          const requestBody = {
             messages: [...messages, newUserMessage].map((msg) => ({
-            role: msg.role,
-            parts: msg.parts.map((part) => part.text),
+              role: msg.role,
+              parts: msg.parts.map((part) => part.text),
             })),
             chatId: selectedChatId,
-        };
+          };
 
         try {
             const token = await getToken({ template: "kvbackend" });

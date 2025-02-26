@@ -7,8 +7,9 @@ import { FormattedChatMessage } from '../useChat/constants';
 interface ChatInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    onSubmit: (e: React.FormEvent, updatedMessages: FormattedChatMessage[]) => void;
-    messages: FormattedChatMessage[];
+  // onSubmit: (e: React.FormEvent, updatedMessages: FormattedChatMessage[]) => void;
+  onSubmit: (e: React.FormEvent, imageFiles: File[]) => void;
+  messages: FormattedChatMessage[];
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messages }) => {
@@ -43,16 +44,22 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messag
   // };
   const handleSubmit = (event: React.FormEvent) => {
       event.preventDefault();
-      const newUserMessage: FormattedChatMessage = { //create new user message
-          role: 'user',
-          parts: [{ text: value }],
-          id: `user-${Date.now()}`,
-      };
-      const updatedMessages = [...messages, newUserMessage];
-      onSubmit(event, updatedMessages); // Pass updatedMessages
+      onSubmit(event, imageFiles); // Pass imageFiles to onSubmit
       setImageUrls([]);
       setImageFiles([]);
   };
+  // const handleSubmit = (event: React.FormEvent) => {
+  //     event.preventDefault();
+  //     const newUserMessage: FormattedChatMessage = { //create new user message
+  //         role: 'user',
+  //         parts: [{ text: value }],
+  //         id: `user-${Date.now()}`,
+  //     };
+  //     const updatedMessages = [...messages, newUserMessage];
+  //     onSubmit(event, updatedMessages); // Pass updatedMessages
+  //     setImageUrls([]);
+  //     setImageFiles([]);
+  // };
 
   const borderRadiusClass = imageUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';
 

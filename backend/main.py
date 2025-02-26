@@ -296,7 +296,11 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
         message_list = ""
         for message in chat_request.messages:
             for part in message.parts:
-                message_list += f"{message.role.upper()}: {part}\n"
+                # message_list += f"{message.role.upper()}: {part}\n"
+                if part.startswith("http"):  # Check if the part is a URL
+                        message_list += f"{message.role.upper()}: ![Image]({part})\n"  # Correctly format as Markdown
+                else:
+                    message_list += f"{message.role.upper()}: {part}\n"
         message_list += "ASSISTANT:"
 
         response_text = ""
@@ -349,39 +353,38 @@ async def add_custom_message_to_db(db, chat_id, user_id, role, content):
         print("Error: role or content missing.")
 
 async def add_messages_to_db(db, chat_requests, chat_id, user_id):
-    """
-    Adds messages from one or more chat requests to the database.
-
-    Args:
-        db: The database connection object.
-        chat_requests: A chat request object or a list of chat request objects, each containing messages.
-        chat_id: The ID of the chat.
-        user_id: The ID of the user.
-    """
     if not isinstance(chat_requests, list):
         chat_requests = [chat_requests]
 
     for chat_request in chat_requests:
         messages_to_add = get_last_messages(chat_request.messages)
+        print(messages_to_add)
 
         if messages_to_add:
-            print(messages_to_add)
             for message in messages_to_add:
                 message_id = str(uuid.uuid4())
                 role = message.role
-                content = message.parts[0]
+                content = ""  # Initialize content
+                media_type = None
+                media_url = None
 
-                if role is not None and content is not None:
-                    try:
-                        await db.execute('''
-                            INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
-                            VALUES ($1, $2, $3, $4, $5, NOW())
-                        ''', message_id, chat_id, user_id, role, content)
-                        print(f"Message {message_id} inserted successfully.")
-                    except Exception as e:
-                        print(f"Error inserting message {message_id}: {e}")
-                else:
-                    print(f"Error: role or content missing from message: {message}")
+                # Iterate over ALL parts of the message
+                for part in message.parts:
+                    if part.startswith("http"):  # Basic URL check
+                        media_type = "image" # Or determine based on file extension/API response
+                        media_url = part # Only the *last* URL will be stored in media_url
+                    else:
+                        content += part #concatenate the text
+
+                try:
+                    await  db.execute('''
+                        INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
+                        VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+                    ''', message_id, chat_id, user_id, role, content, media_type, media_url) #all parts added correctly.
+                    print(f"Message {message_id} inserted successfully.")
+                except Exception as e:
+                    print(f"Error inserting message {message_id}: {e}")
+
         else:
             print("No messages to insert for this chat request.")
 

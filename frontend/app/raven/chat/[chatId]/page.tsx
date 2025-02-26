@@ -29,12 +29,18 @@ export default function ChatPage() {
   const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading, messagesError } = useChatMessages();
 
-  const handleFormSubmit = async (event: React.FormEvent) => {
-      event.preventDefault();
-      if (!input.trim()) return;
-      setInput('');
-      await submitMessage(input);
-  };
+  // const handleFormSubmit = async (event: React.FormEvent) => {
+  //     event.preventDefault();
+  //     if (!input.trim()) return;
+  //     setInput('');
+  //     await submitMessage(input);
+  // };
+  const handleFormSubmit = async (event: React.FormEvent, imageFiles: File[]) => {
+    event.preventDefault();
+    if (!input.trim() && imageFiles.length === 0) return; // Don't submit if both are empty
+    setInput('');
+    await submitMessage(input, imageFiles); // Pass text and files
+};
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
