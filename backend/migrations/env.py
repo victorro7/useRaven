@@ -8,7 +8,7 @@ from alembic import context
 # --- ADDED  ---
 import os
 from dotenv import load_dotenv
-from models import Base
+from backend.migrations.models import Base
 # --- ADDED ---
 
 # this is the Alembic Config object, which provides

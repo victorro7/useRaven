@@ -14,7 +14,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
   if (role === 'system' || role === 'data') {
     return null; // Or render them appropriately
   }
-  
   const isUser = role === 'user';
   const messageClass = isUser
     ? 'bg-[#5b5bd1cb] text-white self-end  px-3 py-2 rounded-xl geist-mono'

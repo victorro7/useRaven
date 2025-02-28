@@ -14,7 +14,7 @@ export const useChatMessages = () => {
     const router = useRouter();
     const isMounted = useRef(true);
     const { getToken } = useAuth();
-    const { uploadImage, loading: isUploading, error: uploadError } = useImageUpload(); 
+    const { uploadImage, loading: isUploading, error: uploadError } = useImageUpload();
 
     useEffect(() => {
         isMounted.current = true;
@@ -54,7 +54,7 @@ export const useChatMessages = () => {
         async (text: string, imageFiles: File[]) => {
           const newUserMessage: FormattedChatMessage = {
             role: 'user',
-            parts: [], // Initialize parts as empty
+            parts: [],
             id: generateId('user'),
           };
             const newAssistantMessageId = generateId("assistant");
@@ -80,7 +80,6 @@ export const useChatMessages = () => {
               }
               // Add all image URLs to the parts array
               imageUrls.forEach(url => newUserMessage.parts.push({text: url}));
-    
             } catch (error) {
               console.error("Image upload error:", error);
                //remove placeholder:

@@ -9,6 +9,7 @@ interface ApiRequestOptions {
   path: string;
   body?: any;
   shouldAuthorize?: boolean;
+  contentType?: string;
 }
 
 export const useApiRequest = () => {
@@ -17,7 +18,7 @@ export const useApiRequest = () => {
     const [error, setError] = useState<string | null>(null);
     const [abortController, setAbortController] = useState<AbortController | null>(null);
 
-    const makeRequest = useCallback(async <T>({ method, path, body, shouldAuthorize = true }: ApiRequestOptions): Promise<T | null> => {
+    const makeRequest = useCallback(async <T>({ method, path, body, shouldAuthorize = true, contentType }: ApiRequestOptions): Promise<T | null> => {
         setLoading(true);
         setError(null);
 
@@ -28,9 +29,16 @@ export const useApiRequest = () => {
         setAbortController(newAbortController);
 
         try {
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-            };
+            // const headers: Record<string, string> = {
+            //     'Content-Type': 'application/json',
+            // };
+            const headers: Record<string, string> = {};
+
+            if (contentType) {
+              headers['Content-Type'] = contentType; //use provided content type.
+            } else {
+              headers['Content-Type'] = 'application/json'; // Default to JSON
+            }
 
             if(shouldAuthorize) {
               const token = await getToken({ template: "kvbackend" });
