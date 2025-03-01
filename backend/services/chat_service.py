@@ -80,20 +80,16 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
         message_list = ""
         for message in chat_request.messages:
             for part in message.parts:
-                if part.startswith("https://storage.googleapis.com"):  # Check if the part is a URL
-                    gcs_uri = extract_bucket_and_file_path(part)
+                if part.type != "text":  # Use the .type attribute
+                    gcs_uri = extract_bucket_and_file_path(part.text)  # Use part.text
                     if gcs_uri:
-                        files_list.append(
-                            Part.from_uri(
-                                uri=gcs_uri,
-                                mime_type="image/jpeg"
-                            )
-                        )
-                    else:
-                        print(f"Invalid GCS URL: {part}")
-                    # message_list += f"{message.role.upper()}: ![Image]({part})\n"  # Correctly format as Markdown
+                        mime_type = part.type  # Use the type directly
+                        if part.type == "image":
+                            mime_type = "image/jpeg"
+                        files_list.append(Part.from_uri(uri=gcs_uri, mime_type=mime_type))
                 else:
-                    message_list += f"{message.role.upper()}: {part}\n"
+                    message_list += f"{message.role.upper()}: {part.text}\n"  # Use part.text
+
         message_list += "ASSISTANT:"
 
         if files_list:
@@ -147,11 +143,45 @@ async def add_custom_message_to_db(db, chat_id, user_id, role, content):
                 INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp)
                 VALUES ($1, $2, $3, $4, $5, NOW())
             ''', message_id, chat_id, user_id, role, content)
-            print(f"Message {message_id} inserted successfully.")
+            print(f"Raven Message {message_id} inserted successfully.")
         except Exception as e:
             print(f"Error inserting message {message_id}: {e}")
     else:
         print("Error: role or content missing.")
+
+# async def add_messages_to_db(db, chat_requests, chat_id, user_id):
+#     if not isinstance(chat_requests, list):
+#         chat_requests = [chat_requests]
+
+#     for chat_request in chat_requests:
+#         messages_to_add = get_last_messages(chat_request.messages)
+
+#         if messages_to_add:
+#             for message in messages_to_add:
+#                 message_id = str(uuid.uuid4())
+#                 role = message.role
+#                 content = ""
+#                 media_type = None  # Initialize media_type
+#                 media_url = None  # Initialize media_url
+#                 for part in message.parts:
+#                     if part.startswith("https://storage.googleapis.com"):
+#                         media_type = "image"
+#                         media_url = part
+#                     else:
+#                         content += part #concatenate the text
+#                 if role is not None and (content is not None or media_url is not None):
+#                     try:
+#                         await db.execute('''
+#                             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
+#                             VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+#                         ''', message_id, chat_id, user_id, role, content, media_type, media_url)
+#                         print(f"Message {message_id} inserted successfully.")
+#                     except Exception as e:
+#                         print(f"Error inserting message {message_id}: {e}")
+#                 else:
+#                     print("missing info")
+#         else:
+#             print("No messages to add")
 
 async def add_messages_to_db(db, chat_requests, chat_id, user_id):
     if not isinstance(chat_requests, list):
@@ -162,30 +192,43 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
 
         if messages_to_add:
             for message in messages_to_add:
-                message_id = str(uuid.uuid4())
+                message_id = str(uuid.uuid4())  # Generate a NEW UUID
                 role = message.role
                 content = ""
-                media_type = None  # Initialize media_type
-                media_url = None  # Initialize media_url
+                media_type = None
+                media_url = None
+                print(message)
                 for part in message.parts:
-                    if part.startswith("https://storage.googleapis.com"):
-                        media_type = "image"
-                        media_url = part
-                    else:
-                        content += part #concatenate the text
-                if role is not None and (content is not None or media_url is not None):
+                    print(part)
+                    part_text = part.text
+                    part_type = part.type
+
+                    if part_type == 'text':
+                        content += part_text if part_text else ""
+                    elif part_type:  # If it's NOT 'text', it's media
+                        media_type = part_type
+                        media_url = part_text
+                        # --- KEY PART: Insert EACH media item separately ---
+                        if role is not None and media_url is not None:
+                            try:
+                                await db.execute('''
+                                    INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
+                                    VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
+                                ''', message_id, chat_id, user_id, role, "", media_type, media_url)  # content is ""
+                                print(f"Media message {message_id} inserted successfully.")
+                            except Exception as e:
+                                print(f"Error inserting media message {message_id}: {e}")
+                            message_id = str(uuid.uuid4()) # Regenerate message_id
+                # Insert text content as a SEPARATE message (if any)
+                if content.strip():
                     try:
                         await db.execute('''
                             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
                             VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
-                        ''', message_id, chat_id, user_id, role, content, media_type, media_url)
-                        print(f"Message {message_id} inserted successfully.")
+                        ''', message_id, chat_id, user_id, role, content, None, None)  # media_type/url are None
+                        print(f"Text message {message_id} inserted successfully.")
                     except Exception as e:
-                        print(f"Error inserting message {message_id}: {e}")
-                else:
-                    print("missing info")
-        else:
-            print("No messages to add")
+                        print(f"Error inserting text message {message_id}: {e}")
 
 def get_last_messages(chat_messages):
     if not chat_messages:
@@ -193,7 +236,3 @@ def get_last_messages(chat_messages):
 
     if len(chat_messages) >= 1:
         return chat_messages[-1:]
-
-
-
-

@@ -12,8 +12,16 @@ class Message(BaseModel):
 class ChatRenameRequest(BaseModel):
     title: str
 
+class ChatMessagePart(BaseModel):
+    text: str
+    type: Optional[str] = None  # Use Optional, and default to None
+
+class FormattedChatMessage(BaseModel):
+    role: str
+    parts: List[ChatMessagePart]
+
 class ChatRequest(BaseModel):
-    messages: list[Message]
+    messages: list[FormattedChatMessage]
     chatId: Optional[str] = None
 
 class ChatCreateRequest(BaseModel):

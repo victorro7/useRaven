@@ -30,6 +30,7 @@ export const useChatMessages = () => {
         if (data) {
             const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
                 const parts: ChatMessagePart[] = [];
+                console.log(parts)
                 if (message.content && message.content.trim() !== "") {
                     parts.push({ text: message.content.replace(/\\n/g, '\n'), type: 'text' });
                 }
@@ -109,7 +110,7 @@ export const useChatMessages = () => {
           const requestBody = {
             messages: [...messages, newUserMessage].map((msg) => ({
               role: msg.role,
-              parts: msg.parts.map((part) => part.text), // Send only text
+              parts: msg.parts,
             })),
             chatId: selectedChatId,
           };

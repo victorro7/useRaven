@@ -105,7 +105,6 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
             )
             for row in rows
         ]
-        print(messages)
         return messages
     except Exception as e:
         print(f"Database error: {e}")

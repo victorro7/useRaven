@@ -155,7 +155,7 @@ export default function ChatPage() {
                 <ChatMessage
                   key={message.id + '_text'}  // Unique key for text part
                   role={message.role}
-                  content={textContent}
+                  content={message.parts.find(part => part.type === 'text')?.text || ''}
                 />
               </div>
             );
