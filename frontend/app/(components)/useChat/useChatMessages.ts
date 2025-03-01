@@ -48,7 +48,7 @@ export const useChatMessages = () => {
             router.push('/raven');
             }
         }
-    }, [makeRequest, router, setMessages]);
+    }, [makeRequest, router]);
 
     const submitMessage = useCallback(
         async (text: string, imageFiles: File[]) => {
@@ -79,7 +79,7 @@ export const useChatMessages = () => {
                 return; // Stop processing
               }
               // Add all image URLs to the parts array
-              imageUrls.forEach(url => newUserMessage.parts.push({text: url}));
+              imageUrls.forEach(url => newUserMessage.parts.push({ type: 'image', text: url }));
             } catch (error) {
               console.error("Image upload error:", error);
                //remove placeholder:

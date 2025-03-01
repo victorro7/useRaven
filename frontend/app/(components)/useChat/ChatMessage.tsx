@@ -1,4 +1,4 @@
-// app/(components)/ChatMessage.tsx
+// app/(components)/useChat/ChatMessage.tsx
 import React from 'react';
 import Image from 'next/image';
 import Markdown from 'markdown-to-jsx';
@@ -40,13 +40,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                         }
                     `}</style>
                     {imageUrl && (
-                    <div style={{ position: 'relative', width: '100%', height: 'auto', maxWidth: '300px', maxHeight: '200px' }}>
+                    <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', maxWidth: '300px' }}>
                         <Image
                         src={imageUrl}
                         alt="Uploaded Image"
                         fill
                         sizes="100%"
                         style={{ objectFit: 'contain', borderRadius: '8px' }}
+                        unoptimized={true}
                         />
                     </div>
                     )}

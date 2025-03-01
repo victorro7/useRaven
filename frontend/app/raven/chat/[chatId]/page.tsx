@@ -29,18 +29,12 @@ export default function ChatPage() {
   const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading, messagesError } = useChatMessages();
 
-  // const handleFormSubmit = async (event: React.FormEvent) => {
-  //     event.preventDefault();
-  //     if (!input.trim()) return;
-  //     setInput('');
-  //     await submitMessage(input);
-  // };
   const handleFormSubmit = async (event: React.FormEvent, imageFiles: File[]) => {
     event.preventDefault();
     if (!input.trim() && imageFiles.length === 0) return; // Don't submit if both are empty
     setInput('');
     await submitMessage(input, imageFiles); // Pass text and files
-};
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -109,14 +103,62 @@ export default function ChatPage() {
         {/* Scrollable Chat Messages with Height Limit */}
         <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
             <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
-                {messages.map((message) => (
-                    <ChatMessage
+              {/* {messages.map((message) => {
+                // Find the image URL part (if any)
+                const imageUrlPart = message.parts.find((part) =>
+                  part.text.startsWith('https://storage.googleapis.com')
+                );
+                const imageUrl = imageUrlPart ? imageUrlPart.text : undefined;
+                console.log(imageUrl);
+                // Get the text content (excluding the image URL)
+                const textContent = message.parts
+                  .filter((part) => !part.text.startsWith('https://storage.googleapis.com'))
+                  .map((part) => part.text)
+                  .join('');
+
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    role={message.role}
+                    content={textContent}
+                    imageUrl={imageUrl}
+                  />
+                );
+              })} */}
+              {messages.map((message) => {
+              // Find image parts
+              const imageUrls = message.parts
+                .filter((part) => part.type === 'image')
+                .map((part) => part.text);
+
+              // Get the text content (excluding image URLs)
+              const textContent = message.parts
+                .filter((part) => part.type !== 'image')
+                .map((part) => part.text)
+                .join('');
+
+                return (
+                    <>
+                    {imageUrls.map((imageUrl) => (
+                        <ChatMessage
+                            key={message.id + imageUrl} // Unique key when multiple images
+                            role={message.role}
+                            content={textContent}
+                            imageUrl={imageUrl}
+                        />
+                    ))}
+                    {/*For messages that do not contain images*/}
+                    {imageUrls.length === 0 &&
+                        <ChatMessage
                         key={message.id}
                         role={message.role}
-                        content={message.parts.map((p) => p.text).join('')}
-                        imageUrl={message.role === 'user' ? message.parts[0]?.text.match(/(https?:\/\/[^\s]+)/)?.[0] : undefined}
-                    />
-                ))}
+                        content={textContent}
+                        imageUrl={undefined}
+                        />
+                    }
+                    </>
+                )
+            })}
             </div>
         </div>
         {isGenerating && <p className="text-gray-400">Generating...</p>}

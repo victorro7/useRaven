@@ -37,9 +37,13 @@ async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = De
             method="PUT",  # Allow PUT requests (uploads)
             content_type=request_body.contentType,
         )
-
+        download_url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(days=7),  # URL expires in 7 days (adjust as needed)
+            method="GET",  # Allow GET requests (downloads)
+        )
         # Return *both* the presigned URL *and* the final GCS URL
-        return PresignedUrlResponse(url=url, gcs_url=f"gs://{bucket_name}/{blob_name}")
+        return PresignedUrlResponse(url=url, gcs_url=download_url)
 
     except Exception as e:
         print(f"Error generating presigned URL: {e}")
