@@ -1,4 +1,4 @@
-// app/raven/chat/[chatId]/page.tsx
+// app/raven/chat/[chatId]/page.tsx (Revised for Grouped Layout)
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
@@ -11,6 +11,8 @@ import { useUser } from '@clerk/nextjs';
 import { useChats } from '@/app/(components)/useChat/useChats';
 import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
 import { useChatState } from '@/app/(components)/useChat/useChatState';
+import Image from 'next/image';
+import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa';
 
 interface ChatPageParams {
   chatId: string;
@@ -29,11 +31,11 @@ export default function ChatPage() {
   const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading, messagesError } = useChatMessages();
 
-  const handleFormSubmit = async (event: React.FormEvent, imageFiles: File[]) => {
+  const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
     event.preventDefault();
-    if (!input.trim() && imageFiles.length === 0) return; // Don't submit if both are empty
+    if (!input.trim() && mediaFiles.length === 0) return;
     setInput('');
-    await submitMessage(input, imageFiles); // Pass text and files
+    await submitMessage(input, mediaFiles);
   };
 
   useEffect(() => {
@@ -41,7 +43,6 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    // Set selectedChatId when chatId changes
     setSelectedChatId(chatId);
   }, [chatId, setSelectedChatId]);
 
@@ -51,16 +52,15 @@ export default function ChatPage() {
     }
   }, [selectedChatId, loadChatMessages]);
 
-  // Show title on initial load and new chat
   useEffect(() => {
     setShowTitle(!isLoading && (messages.length === 0));
   }, [isLoading, messages.length]);
 
   useEffect(() => {
     if (!hasInteracted) {
-        setShowSuggestions(input.length === 0);
+      setShowSuggestions(input.length === 0);
     } else {
-        setShowSuggestions(false)
+      setShowSuggestions(false);
     }
   }, [hasInteracted, input]);
 
@@ -74,15 +74,15 @@ export default function ChatPage() {
       <div className="flex justify-center items-center h-full">
         <Spinner size="lg" color="white" />
       </div>
-    )
+    );
   }
 
-  const suggestions = [
-    { icon: <LogoIcon />, title: "Explain something", content: "Understand a topic.", prompt: "Explain [topic] to me." },
-    { icon: <LogoIcon />, title: "Write Code", content: "Get help writing code.", prompt: "Write a [language] function to [do something]." },
-    { icon: <LogoIcon />, title: "Summarize Text", content: "Condense text into a summary.", prompt: "Summarize this text: [text]." },
-    { icon: <LogoIcon />, title: "Plan something", content: "Plan a trip, a party, etc.", prompt: "Help me to plan [event]." },
-  ];
+    const suggestions = [
+        { icon: <LogoIcon />, title: "Explain something", content: "Understand a topic.", prompt: "Explain [topic] to me." },
+        { icon: <LogoIcon />, title: "Write Code", content: "Get help writing code.", prompt: "Write a [language] function to [do something]." },
+        { icon: <LogoIcon />, title: "Summarize Text", content: "Condense text into a summary.", prompt: "Summarize this text: [text]." },
+        { icon: <LogoIcon />, title: "Plan something", content: "Plan a trip, a party, etc.", prompt: "Help me to plan [event]." },
+    ];
 
   if (error) {
     return <div className="text-red-500">error: {error}</div>;
@@ -90,88 +90,103 @@ export default function ChatPage() {
 
   const userName = user?.firstName || '';
 
+    // Helper function for media icons
+    const getMediaIcon = (mediaType: string) => {
+        if (mediaType?.startsWith('video')) {
+        return <FaVideo size={64} />;
+        } else if (mediaType?.startsWith('audio')) {
+        return <FaFileAudio size={64} />;
+        }
+        return <FaFileAlt size={64} />; // Default for documents/other
+    };
+
   return (
     <div className="bg-[#09090b] w-full mx-auto flex flex-col h-full">
-        {/* Intro */}
-        {showTitle && (
-            <div className="flex items-center justify-center h-full">
-                <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
-                    Hey {userName}! Welcome to Raven
-                </h2>
-            </div>
-        )}
+      {showTitle && (
+        <div className="flex items-center justify-center h-full">
+          <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
+            Hey {userName}! Welcome to Raven
+          </h2>
+        </div>
+      )}
 
-        {/* {(error || messagesError) && <p className="text-red-500">Error: {error || messagesError}</p>}
-        {!isLoading && !error && messages.length === 0 && (
-            <p className="text-gray-400">No messages yet. Start a conversation!</p>
-        )} */}
-        {/* Scrollable Chat Messages with Height Limit */}
-        <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
-            <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
-              {messages.map((message) => {
-              // Find image parts
-              const imageUrls = message.parts
-                .filter((part) => part.type === 'image')
-                .map((part) => part.text);
-
-              // Get the text content (excluding image URLs)
-              const textContent = message.parts
-                .filter((part) => part.type !== 'image')
+      <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
+        <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle ? 'hidden' : ''}`}>
+        {messages.map((message) => {
+            const mediaParts = message.parts.filter((part) => part.type !== 'text' && part.type !== undefined);
+            const textContent = message.parts
+                .filter((part) => part.type === 'text')
                 .map((part) => part.text)
                 .join('');
+            const isUser = message.role === 'user';
+            return (
+              <div key={message.id} className="mb-4"> {/* Wrapper div */}
+                {/* Media Previews (Above Text) */}
+                {mediaParts.length > 0 && (
+                    <div className={`flex flex-wrap gap-2 mb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+                      {mediaParts.map((mediaPart) => {
+                                // Defensive checks: Ensure mediaPart.type and mediaPart.text exist
+                                if (!mediaPart.type || !mediaPart.text) {
+                                  console.warn("Skipping media part with missing type or text:", mediaPart);
+                                  return null; // Skip rendering this part
+                                }
 
-                return (
-                    <>
-                    {imageUrls.map((imageUrl) => (
-                        <ChatMessage
-                            key={message.id + imageUrl} // Unique key when multiple images
-                            role={message.role}
-                            content={textContent}
-                            imageUrl={imageUrl}
-                        />
-                    ))}
-                    {/*For messages that do not contain images*/}
-                    {imageUrls.length === 0 &&
-                        <ChatMessage
-                        key={message.id}
-                        role={message.role}
-                        content={textContent}
-                        imageUrl={undefined}
-                        />
-                    }
-                    </>
-                )
-            })}
-            </div>
-        </div>
-        {isGenerating && <p className="text-gray-400">Generating...</p>}
-        {/* Suggestions and Input at the bottom */}
-        <div className="p-4  w-full bg-[#09090b]">
-            {/* Suggestions */}
-            {(showSuggestions && showTitle) && (
-                <div className="mb-4">
-                    <div className="flex justify-center">
-                        <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
-                            {suggestions.map((suggestion) => (
-                                <SuggestionChip
-                                    key={suggestion.title}
-                                    icon={suggestion.icon}
-                                    title={suggestion.title}
-                                    content={suggestion.content}
-                                    onClick={() => setInput(suggestion.prompt || '')}
-                                />
-                            ))}
-                        </div>
+                                return (
+                                  <div key={mediaPart.text} className="relative">
+                                    {mediaPart.type === 'image' ? (
+                                      <Image
+                                        src={mediaPart.text}
+                                        alt="Uploaded Media"
+                                        width={128}
+                                        height={128}
+                                        className="rounded-md object-cover"
+                                        unoptimized={true}
+                                      />
+                                    ) : (
+                                        <div className='p-2'>{getMediaIcon(mediaPart.type)}</div>
+                                    )}
+                                  </div>
+                                );
+                      })}
                     </div>
-                </div>
-            )}
-            {/* Suggestions */}
-            {/* Input */}
-            <div className="w-full max-w-2xl mx-auto">
-                <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} messages={messages}/>
-            </div>
-            {/* Input */}
+                )}
+
+                {/* ChatMessage for Text Content */}
+                <ChatMessage
+                  key={message.id + '_text'}  // Unique key for text part
+                  role={message.role}
+                  content={textContent}
+                />
+              </div>
+            );
+          })}
         </div>
+      </div>
+
+      {isGenerating && <p className="text-gray-400">Generating...</p>}
+
+      <div className="p-4 w-full bg-[#09090b]">
+        {(showSuggestions && showTitle) && (
+          <div className="mb-4">
+            <div className="flex justify-center">
+              <div className="flex gap-2 w-fit overflow-x-auto scroll-smooth scrollbar-hide">
+                {suggestions.map((suggestion) => (
+                  <SuggestionChip
+                    key={suggestion.title}
+                    icon={suggestion.icon}
+                    title={suggestion.title}
+                    content={suggestion.content}
+                    onClick={() => setInput(suggestion.prompt || '')}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="w-full max-w-2xl mx-auto">
+          <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} messages={messages} />
+        </div>
+      </div>
     </div>
-);
+  );
 }

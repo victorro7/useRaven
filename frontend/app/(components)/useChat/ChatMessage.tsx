@@ -7,12 +7,13 @@ import LogoIcon from '../icons/LogoIcon';
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system' | 'data';
   content: string;
-  imageUrl?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'audio' | 'document' | 'other' | 'text';
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, mediaType }) => {
   if (role === 'system' || role === 'data') {
-    return null; // Or render them appropriately
+    return null;
   }
   const isUser = role === 'user';
   const messageClass = isUser
@@ -32,17 +33,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                 </div>
             )}
             <div className={`flex flex-col  ${ isUser ? 'items-end' : 'items-start'}`}>
-              <div className={`p-2  max-w-prose ${messageClass} overflow-x-hidden`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', scrollbarGutter: 'stable'}}>
+              <div className={`p-2  max-w-prose ${messageClass} overflow-x-hidden mt-2`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', scrollbarGutter: 'stable'}}>
                     {/* WebKit-specific scrollbar hiding */}
                     <style jsx>{`
                         .hide-scrollbar::-webkit-scrollbar {
                         width: 0px; /* Hide scrollbar in WebKit browsers */
                         }
                     `}</style>
-                    {imageUrl && (
+                    {mediaType === 'image' && mediaUrl && (
                     <div style={{ position: 'relative', width: '100%', paddingTop: '56.25%', maxWidth: '300px' }}>
                         <Image
-                        src={imageUrl}
+                        src={mediaUrl}
                         alt="Uploaded Image"
                         fill
                         sizes="100%"
@@ -54,45 +55,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, imageUrl }) =>
                 <Markdown
                   options={{
                     overrides: {
-                      h1: {
-                        props: {
-                          className: 'text-2xl font-bold mb-2 whitespace-pre-wrap', // Style for h1
-                        },
-                      },
-                      h2: {
-                        props: {
-                          className: 'text-xl font-semibold mb-2 whitespace-pre-wrap', // Style for h2
-                        },
-                      },
-                      h3: {
-                          props: {
-                            className: 'text-lg font-medium mb-2', // Style for h2
-                          },
-                        },
-                      p: {
-                        props: {
-                          className: 'mb-2 whitespace-pre-wrap',
-                        },
-                      },
-                      li: {
-                        props: {
-                          className: 'mb-1', // Add margin to list items
-                        },
-                      },
-                      pre: {
-                        props: {
-                          className:
-                            'mb-5 bg-gray-800 rounded-md p-2 overflow-x-auto text-sm whitespace-pre-wrap hide-scrollbar',
-                            style: { wordBreak: 'break-all' }
-                        },
-                      },
-                      code: {
-                        props: {
-                          className:
-                            'mb-2 bg-gray-800 text-green-400 rounded px-1 py-0.5 font-mono text-sm',
-                            style: { wordBreak: 'break-all' }
-                        },
-                      },
+                      h1: { props: { className: 'text-2xl font-bold mb-2 whitespace-pre-wrap' } },
+                      h2: { props: { className: 'text-xl font-semibold mb-2 whitespace-pre-wrap' } },
+                      h3: { props: { className: 'text-lg font-medium mb-2' } },
+                      p: { props: { className: 'mb-2 whitespace-pre-wrap' } },
+                      li: { props: { className: 'mb-1' } },
+                      pre: { props: { className: 'mb-5 bg-gray-800 rounded-md p-2 overflow-x-auto text-sm whitespace-pre-wrap hide-scrollbar', style: { wordBreak: 'break-all' } } },
+                      code: { props: { className: 'mb-2 bg-gray-800 text-green-400 rounded px-1 py-0.5 font-mono text-sm', style: { wordBreak: 'break-all' } } },
                     },
                   }}
                 >

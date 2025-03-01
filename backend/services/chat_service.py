@@ -193,3 +193,7 @@ def get_last_messages(chat_messages):
 
     if len(chat_messages) >= 1:
         return chat_messages[-1:]
+
+
+
+

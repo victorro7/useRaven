@@ -1,67 +1,53 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
 import Image from 'next/image';
 import UploadIcon from '../icons/UploadIcon';
 import SendIcon from '../icons/SendIcon';
 import { FormattedChatMessage } from '../useChat/constants';
+import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa'; // Import icons
 
 interface ChatInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  // onSubmit: (e: React.FormEvent, updatedMessages: FormattedChatMessage[]) => void;
-  onSubmit: (e: React.FormEvent, imageFiles: File[]) => void;
+  onSubmit: (e: React.FormEvent, files: File[]) => void;
   messages: FormattedChatMessage[];
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messages }) => {
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // Store all files
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Store preview URLs (images) or placeholders
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      const newImageFiles = Array.from(files);
-      setImageFiles((prevFiles) => [...prevFiles, ...newImageFiles]);
-      const newImageUrls = newImageFiles.map((file) => URL.createObjectURL(file));
-      setImageUrls((prevUrls) => [...prevUrls, ...newImageUrls]);
+      const newFiles = Array.from(files);
+      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+
+      // Generate previews (URLs for images, placeholders for others)
+      const newPreviews = Array.from(files).map((file) => {
+        if (file.type.startsWith('image/')) {
+          return URL.createObjectURL(file);
+        } else {
+          return 'placeholder'; // Use a placeholder string
+        }
+      });
+      setPreviewUrls((prevPreviews) => [...prevPreviews, ...newPreviews]);
     }
   };
 
-  const handleRemoveImage = (indexToRemove: number) => {
-    setImageFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
-    setImageUrls((prevUrls) => prevUrls.filter((_, index) => index !== indexToRemove));
+  const handleRemoveFile = (indexToRemove: number) => {
+    setSelectedFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
+    setPreviewUrls((prevPreviews) => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
 
-  // const handleSubmit = (event: React.FormEvent) => {
-  //   event.preventDefault();
-  //   const data = {
-  //     imageUrl: imageUrls.length > 0 ? imageUrls[0] : undefined,
-  //     imageFiles: imageFiles,
-  //   };
-  //   onSubmit(event, data);
-  //   setImageUrls([]);
-  //   setImageFiles([]);
-  // };
   const handleSubmit = (event: React.FormEvent) => {
-      event.preventDefault();
-      onSubmit(event, imageFiles); // Pass imageFiles to onSubmit
-      setImageUrls([]);
-      setImageFiles([]);
+    event.preventDefault();
+    onSubmit(event, selectedFiles);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
   };
-  // const handleSubmit = (event: React.FormEvent) => {
-  //     event.preventDefault();
-  //     const newUserMessage: FormattedChatMessage = { //create new user message
-  //         role: 'user',
-  //         parts: [{ text: value }],
-  //         id: `user-${Date.now()}`,
-  //     };
-  //     const updatedMessages = [...messages, newUserMessage];
-  //     onSubmit(event, updatedMessages); // Pass updatedMessages
-  //     setImageUrls([]);
-  //     setImageFiles([]);
-  // };
 
-  const borderRadiusClass = imageUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';
+  const borderRadiusClass = previewUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';
 
   useEffect(() => {
     adjustHeight();
@@ -75,13 +61,24 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messag
     }
   };
 
+    // Helper function to get icon based on file type
+    const getFileIcon = (fileType: string) => {
+        if (fileType.startsWith('video/')) {
+          return <FaVideo size={24} />;
+        } else if (fileType.startsWith('audio/')) {
+          return <FaFileAudio size={24} />;
+        } else {
+          return <FaFileAlt size={24} />; // Default icon for documents/other
+        }
+      };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
       <div className={`w-full p-1 ${borderRadiusClass} bg-gray-800`}>
-        {/* Image Preview */}
-        {imageUrls.length > 0 && (
+        {/* File Preview (Images and Icons) */}
+        {previewUrls.length > 0 && (
           <div className="flex flex-row flex-wrap items-center gap-2 p-2">
-            {imageUrls.map((imageUrl, index) => (
+            {previewUrls.map((previewUrl, index) => (
               <div
                 key={index}
                 className="relative"
@@ -98,17 +95,24 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messag
                   }
                 }}
               >
-                <Image
-                    src={imageUrl}
+                {previewUrl !== 'placeholder' ? (
+                  <Image
+                    src={previewUrl}
                     alt={`Preview ${index}`}
                     width={64}
                     height={64}
                     className="rounded-md object-cover"
                   />
+                ) : (
+                  // Display icon based on file type
+                  <div className="w-16 h-16 flex items-center justify-center bg-gray-700 rounded-md">
+                      {getFileIcon(selectedFiles[index].type)}
+                  </div>
+                )}
                 <button
                   type="button"
                   id={`delete-button-${index}`}
-                  onClick={() => handleRemoveImage(index)}
+                  onClick={() => handleRemoveFile(index)}
                   className="absolute top-1 right-1 bg-[#5b5bd1cb] text-white rounded-full p-1 text-xs hover:bg-red-700 hidden"
                 >
                   X
@@ -120,12 +124,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messag
 
         <div className="flex flex-col w-full min-h-[40px] max-h-[120px] overflow-hidden">
           <div className="flex items-center py-2">
-            <label htmlFor="image-upload" className="cursor-pointer">
+            <label htmlFor="file-upload" className="cursor-pointer">
               <input
                 type="file"
-                id="image-upload"
-                accept="image/*"
-                onChange={handleImageChange}
+                id="file-upload"
+                accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" // Accept multiple types
+                onChange={handleFileChange}
                 className="hidden"
                 multiple
               />

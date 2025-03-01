@@ -1,4 +1,4 @@
-// app/(components)/useImageUpload.ts (Using modified useApiRequest)
+// app/(components)/useMediaUpload.ts (Using modified useApiRequest)
 import { useCallback } from 'react';
 import { useApiRequest } from './useApiRequest';
 
@@ -7,10 +7,10 @@ interface PresignedUrlResponse {
   gcs_url: string;
 }
 
-export const useImageUpload = () => {
+export const useMediaUpload = () => {
   const { makeRequest, loading, error } = useApiRequest();
 
-    const uploadImage = useCallback(async (file: File): Promise<string | null> => {
+    const uploadMedia = useCallback(async (file: File): Promise<string | null> => {
     try {
       // 1. Get the presigned URL
       const presignedUrlResponse = await makeRequest<PresignedUrlResponse>({
@@ -46,10 +46,10 @@ export const useImageUpload = () => {
 
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      return null; // Or handle the error as appropriate for your UI
+      return null;
     }
-  }, [makeRequest]); // Add makeRequest to the dependency array
+  }, [makeRequest]);
 
 
-  return { uploadImage, loading, error };
+  return { uploadMedia, loading, error };
 };

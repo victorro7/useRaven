@@ -100,8 +100,8 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
                 role=row['role'],
                 content=row['content'].strip(),
                 timestamp=row['timestamp'],
-                media_type=row['media_type'],  # Include media_type
-                media_url=row['media_url']  # Include media_url
+                media_type=row['media_type'],
+                media_url=row['media_url']
             )
             for row in rows
         ]

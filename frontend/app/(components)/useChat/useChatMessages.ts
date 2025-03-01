@@ -1,11 +1,11 @@
-// app/(components)/useChatMessages.ts
+// app/(components)/useChat/useChatMessages.ts (Completed)
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useApiRequest } from './useApiRequest';
 import { FormattedChatMessage, ChatMessagePart, generateId } from './constants';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useChatState } from './useChatState';
-import { useImageUpload } from './useImageUpload';
+import { useMediaUpload } from './useMediaUpload'; // Import useMediaUpload
 
 export const useChatMessages = () => {
     const { makeRequest, loading: isMessagesLoading, error: messagesError, abortController } = useApiRequest();
@@ -14,7 +14,7 @@ export const useChatMessages = () => {
     const router = useRouter();
     const isMounted = useRef(true);
     const { getToken } = useAuth();
-    const { uploadImage, loading: isUploading, error: uploadError } = useImageUpload();
+    const { uploadMedia, loading: isUploading, error: uploadError } = useMediaUpload(); // Use useMediaUpload
 
     useEffect(() => {
         isMounted.current = true;
@@ -26,84 +26,90 @@ export const useChatMessages = () => {
     const loadChatMessages = useCallback(async (chatId: string) => {
         setMessages([]);
         const data = await makeRequest<any[]>({ method: 'GET', path: `/api/chats/${chatId}` });
-        console.log("Data from backend:", data);
+
         if (data) {
             const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
                 const parts: ChatMessagePart[] = [];
                 if (message.content && message.content.trim() !== "") {
-                    parts.push({ text: message.content.replace(/\\n/g, '\n')})
+                    parts.push({ text: message.content.replace(/\\n/g, '\n'), type: 'text' });
                 }
-                if(message.media_url && message.media_type === 'image'){
-                    parts.push({  type: 'image', text: message.media_url })
+                // Use media_type to determine the type
+                if (message.media_url && message.media_type) {
+                  const [mediaCategory, mediaType] = message.media_type.split('/');
+                    parts.push({ type: mediaCategory as ChatMessagePart["type"], text: message.media_url });
                 }
                 return {
-                role: message.role,
-                parts: parts, // Use the parts array
-                id: message.messageId,
-            }});
-            console.log("Formatted messages:", formattedMessages);
-            if(isMounted.current) { // Check if mounted before setting state
+                    role: message.role,
+                    parts: parts,
+                    id: message.messageId,
+                };
+            });
+            if (isMounted.current) {
                 setMessages(formattedMessages);
             }
         } else {
             if (isMounted.current) {
-            router.push('/raven');
+                router.push('/raven');
             }
         }
     }, [makeRequest, router]);
 
     const submitMessage = useCallback(
-        async (text: string, imageFiles: File[]) => {
+        async (text: string, mediaFiles: File[]) => { // Changed parameter name
           const newUserMessage: FormattedChatMessage = {
             role: 'user',
             parts: [],
             id: generateId('user'),
           };
             const newAssistantMessageId = generateId("assistant");
-    
+
           if (!selectedChatId) {
             console.error("Cannot submit message: selectedChatId is null.");
             return;
           }
-    
-          // 1. Upload ALL images *first* (concurrently)
-          let imageUrls: string[] = [];
-          if (imageFiles.length > 0) {
+
+          // 1. Upload ALL media *first* (concurrently)
+          let mediaUrls: string[] = [];
+          if (mediaFiles.length > 0) { // Changed variable name
             try {
-              const uploadPromises = imageFiles.map(file => uploadImage(file));
-              imageUrls = (await Promise.all(uploadPromises)).filter((url): url is string => url !== null); //wait for all promises to resolve
-    
-              if (imageUrls.length !== imageFiles.length) {
-                console.error("Some image uploads failed."); // Not all images uploaded
-                //remove placeholder:
-                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId)) //remove the assistant
-                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id)) //remove failed message
-                return; // Stop processing
+              const uploadPromises = mediaFiles.map(file => uploadMedia(file));
+              mediaUrls = (await Promise.all(uploadPromises)).filter((url): url is string => url !== null);
+
+              if (mediaUrls.length !== mediaFiles.length) {
+                console.error("Some media uploads failed.");
+                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId))
+                setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id))
+                return;
               }
-              // Add all image URLs to the parts array
-              imageUrls.forEach(url => newUserMessage.parts.push({ type: 'image', text: url }));
+              // Add all media URLs to the parts array
+              mediaUrls.forEach(url => {
+                // Get the MIME type from the file object (more reliable)
+                const file = mediaFiles.find(f => uploadPromises.some(promise => promise.then(u => u === url)));
+                const mimeType = file ? file.type : 'other'; // Fallback to 'other' if not found
+                const [mediaCategory, mediaType] = mimeType.split('/');
+                newUserMessage.parts.push({ type: mediaCategory as ChatMessagePart["type"], text: url }); // Dynamic type
+              });
             } catch (error) {
-              console.error("Image upload error:", error);
-               //remove placeholder:
-              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId)) //remove the assistant
-              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id)) //remove failed message
-              return; // Stop processing
+              console.error("Media upload error:", error);
+              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newAssistantMessageId))
+              setMessages(prevMessages => prevMessages.filter(msg => msg.id !== newUserMessage.id))
+              return;
             }
           }
-    
-            // 2. Add text *after* image upload (if any)
-            if (text.trim() !== "") { // Only add if there is text.
-                newUserMessage.parts.push({ text });
+
+            // 2. Add text *after* media upload (if any)
+            if (text.trim() !== "") {
+                newUserMessage.parts.push({ text, type: 'text' });
             }
-    
+
             // Optimistically add the user message *and* a placeholder for the assistant message
             setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: '' }], id: newAssistantMessageId }]);
-    
-          // 3. Construct request body *after* handling images and text
+
+          // 3. Construct request body *after* handling media and text
           const requestBody = {
             messages: [...messages, newUserMessage].map((msg) => ({
               role: msg.role,
-              parts: msg.parts.map((part) => part.text),
+              parts: msg.parts.map((part) => part.text), // Send only text
             })),
             chatId: selectedChatId,
           };
@@ -171,6 +177,7 @@ export const useChatMessages = () => {
                                 text:
                                 updatedMessages[existingAssistantMessageIndex].parts[0].text +
                                 jsonChunk.response,
+                                type: 'text'
                             },
                             ],
                         };
@@ -190,7 +197,6 @@ export const useChatMessages = () => {
                     return; // Expected
                     }
                     console.error('Error parsing JSON:', parseError, line);
-                    // setError("Error processing response from server.  Check the server logs."); // More specific error
                     return;
                 }
                 }
@@ -199,7 +205,7 @@ export const useChatMessages = () => {
             console.error('Error during streaming', e);
             }
 
-    }, [messages, abortController]);
+    }, [messages, abortController, uploadMedia, getToken, selectedChatId]);
 
     return { messages, setMessages, loadChatMessages, submitMessage, isMessagesLoading, messagesError };
 };
