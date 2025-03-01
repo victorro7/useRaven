@@ -173,10 +173,8 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
                         media_url = part
                     else:
                         content += part #concatenate the text
-                print(media_url)
                 if role is not None and (content is not None or media_url is not None):
                     try:
-                        # async with db.acquire() as conn: # Acquire a connection from the pool
                         await db.execute('''
                             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
                             VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)

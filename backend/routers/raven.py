@@ -86,10 +86,26 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found or access denied")
 
-        query = "SELECT id, role, content, EXTRACT(EPOCH FROM timestamp) as timestamp FROM raven_messages WHERE chat_id = $1 ORDER BY timestamp ASC"
+        query = """
+            SELECT id, role, content, EXTRACT(EPOCH FROM timestamp) as timestamp, media_type, media_url
+            FROM raven_messages
+            WHERE chat_id = $1
+            ORDER BY timestamp ASC
+        """
         rows = await db.fetch(query, chat_id)
 
-        messages = [ChatMessage(messageId=row['id'], role=row['role'], content=row['content'].strip(), timestamp=row['timestamp']) for row in rows]
+        messages = [
+            ChatMessage(
+                messageId=row['id'],
+                role=row['role'],
+                content=row['content'].strip(),
+                timestamp=row['timestamp'],
+                media_type=row['media_type'],  # Include media_type
+                media_url=row['media_url']  # Include media_url
+            )
+            for row in rows
+        ]
+        print(messages)
         return messages
     except Exception as e:
         print(f"Database error: {e}")
@@ -146,7 +162,7 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
         print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
 
-@router.post("/initialmessage") # a new end point for initial messages.
+@router.post("/initialmessage")
 async def initial_message(chat_request: ChatRequest, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
     if(len(chat_request.messages) >= 1):
         try:

@@ -41,6 +41,11 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
+    // Set selectedChatId when chatId changes
+    setSelectedChatId(chatId);
+  }, [chatId, setSelectedChatId]);
+
+  useEffect(() => {
     if (selectedChatId) {
       loadChatMessages(selectedChatId);
     }
@@ -103,28 +108,6 @@ export default function ChatPage() {
         {/* Scrollable Chat Messages with Height Limit */}
         <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
             <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle? 'hidden':''}`}>
-              {/* {messages.map((message) => {
-                // Find the image URL part (if any)
-                const imageUrlPart = message.parts.find((part) =>
-                  part.text.startsWith('https://storage.googleapis.com')
-                );
-                const imageUrl = imageUrlPart ? imageUrlPart.text : undefined;
-                console.log(imageUrl);
-                // Get the text content (excluding the image URL)
-                const textContent = message.parts
-                  .filter((part) => !part.text.startsWith('https://storage.googleapis.com'))
-                  .map((part) => part.text)
-                  .join('');
-
-                return (
-                  <ChatMessage
-                    key={message.id}
-                    role={message.role}
-                    content={textContent}
-                    imageUrl={imageUrl}
-                  />
-                );
-              })} */}
               {messages.map((message) => {
               // Find image parts
               const imageUrls = message.parts

@@ -28,6 +28,8 @@ class ChatMessage(BaseModel): #for returning chat messages.
     role: str
     content: str
     timestamp: float
+    media_type: str | None = None
+    media_url: str | None = None
 
 class Chat(BaseModel): #for returning chats.
     chatId: str

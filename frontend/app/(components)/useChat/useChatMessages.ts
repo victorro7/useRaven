@@ -26,6 +26,7 @@ export const useChatMessages = () => {
     const loadChatMessages = useCallback(async (chatId: string) => {
         setMessages([]);
         const data = await makeRequest<any[]>({ method: 'GET', path: `/api/chats/${chatId}` });
+        console.log("Data from backend:", data);
         if (data) {
             const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
                 const parts: ChatMessagePart[] = [];
@@ -33,13 +34,14 @@ export const useChatMessages = () => {
                     parts.push({ text: message.content.replace(/\\n/g, '\n')})
                 }
                 if(message.media_url && message.media_type === 'image'){
-                    parts.push({ text: message.media_url })
+                    parts.push({  type: 'image', text: message.media_url })
                 }
                 return {
                 role: message.role,
                 parts: parts, // Use the parts array
                 id: message.messageId,
             }});
+            console.log("Formatted messages:", formattedMessages);
             if(isMounted.current) { // Check if mounted before setting state
                 setMessages(formattedMessages);
             }
