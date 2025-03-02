@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/(components)/ChatSidebar.tsx
 "use client";
 import React, { useState, useRef, useEffect } from "react";
@@ -16,12 +17,11 @@ interface SidebarProps {
   deleteChat: (chatId: string, currentChatId: string | null) => void;
   renameChat: (chatId: string, newTitle: string) => void;
   fetchChats?: ()  => Promise<void>;
-  messages: any[];
   selectedChatId: string | null;
   disableNewChatButton: boolean;
 }
 
-export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, messages, selectedChatId, disableNewChatButton }: SidebarProps) {
+export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, selectedChatId, disableNewChatButton }: SidebarProps) {
   const [open, setOpen] = React.useState(false);
   const { user } = useUser();
   const [editingChatId, setEditingChatId] = useState<string | null>(null);

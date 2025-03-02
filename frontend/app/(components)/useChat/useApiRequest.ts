@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/(components)/useApiRequest.ts
 import { useState, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { BASE_URL } from './constants'; // Import BASE_URL
-
+import { BASE_URL } from './constants';
 
 interface ApiRequestOptions {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -29,9 +29,6 @@ export const useApiRequest = () => {
         setAbortController(newAbortController);
 
         try {
-            // const headers: Record<string, string> = {
-            //     'Content-Type': 'application/json',
-            // };
             const headers: Record<string, string> = {};
 
             if (contentType) {

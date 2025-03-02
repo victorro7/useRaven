@@ -1,5 +1,5 @@
 export const generateId = (type: "user" | "assistant" | "message") => `${type}-${Date.now()}`;
-export const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+export const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export interface ChatMessagePart {
   text: string;

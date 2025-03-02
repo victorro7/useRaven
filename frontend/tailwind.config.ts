@@ -15,17 +15,17 @@ const config: Config = {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'Inter"',
+  				'Inter',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
-  				'Apple Color Emoji"',
-  				'Segoe UI Emoji"',
-  				'Segoe UI Symbol"',
-  				'Noto Color Emoji"'
+  				'Apple Color Emoji',
+  				'Segoe UI Emoji',
+  				'Segoe UI Symbol',
+  				'Noto Color Emoji'
   			],
   			myeongjo: [
-  				'Nanum Myeongjo"',
+  				'Nanum Myeongjo',
   				'serif'
   			]
   		},
@@ -98,7 +98,7 @@ function addVariablesForColors({ addBase, theme }: any) {
 	let newVars = Object.fromEntries(
 	  Object.entries(allColors).map(([key, val]) => [`--${key}`, val])
 	);
-   
+
 	addBase({
 	  ":root": newVars,
 	});

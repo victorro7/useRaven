@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // MobileLayout.tsx
 import React from 'react';
 import Navbar from '../(components)/Navbar';
@@ -5,12 +6,11 @@ import { ChatSidebar } from '../(components)/useChat/ChatSidebar';
 
 interface MobileLayoutProps {
     children: React.ReactNode;
-    chats: any[]; // Add props for ChatSidebar
+    chats: any[];
     loadChat: (chatId: string) => void;
     createNewChat: () => void;
     deleteChat: (chatId: string, currentChatId: string | null) => void;
     renameChat: (chatId: string, newName: string) => void;
-    messages: any[];
     fetchChats: ()  => Promise<void>;
     selectedChatId: string | null;
     disableNewChatButton: boolean;
@@ -22,7 +22,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     createNewChat,
     deleteChat,
     renameChat,
-    messages,
     fetchChats,
     selectedChatId,
     disableNewChatButton,
@@ -36,7 +35,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
                     createNewChat={createNewChat}
                     deleteChat={deleteChat}
                     renameChat={renameChat}
-                    messages={messages}
                     fetchChats={fetchChats}
                     selectedChatId={selectedChatId}
                     disableNewChatButton={disableNewChatButton}

@@ -20,8 +20,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+        pathname: '/**',
+      },
     ],
-    domains: ['img.clerk.com'], // Add this line
   },
 
   webpack(config) {
