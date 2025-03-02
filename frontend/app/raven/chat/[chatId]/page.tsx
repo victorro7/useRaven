@@ -8,28 +8,22 @@ import Spinner from '@/app/(components)/icons/Spinner';
 import LogoIcon from '@/app/(components)/icons/LogoIcon';
 import SuggestionChip from '@/app/(components)/SuggestionChip';
 import { useUser } from '@clerk/nextjs';
-import { useChats } from '@/app/(components)/useChat/useChats';
 import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
 import { useChatState } from '@/app/(components)/useChat/useChatState';
 import Image from 'next/image';
 import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa';
-
-interface ChatPageParams {
-  chatId: string;
-}
 
 export default function ChatPage() {
   const params = useParams();
   const chatId = params.chatId as string;
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showTitle, setShowTitle] = useState(true);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  const { user, isSignedIn } = useUser();
+  const [hasInteracted] = useState(false);
+  const { user } = useUser();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
   const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
-  const { messages, loadChatMessages, submitMessage, isMessagesLoading, messagesError } = useChatMessages();
+  const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
 
   const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
     event.preventDefault();
@@ -63,11 +57,6 @@ export default function ChatPage() {
       setShowSuggestions(false);
     }
   }, [hasInteracted, input]);
-
-  const setPrompt = (prompt: string) => {
-    setInput(prompt);
-    setShowSuggestions(false);
-  };
 
   if (isLoading || isMessagesLoading) {
     return (
@@ -114,7 +103,7 @@ export default function ChatPage() {
         <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle ? 'hidden' : ''}`}>
         {messages.map((message) => {
             const mediaParts = message.parts.filter((part) => part.type !== 'text' && part.type !== undefined);
-            const textContent = message.parts
+            message.parts
                 .filter((part) => part.type === 'text')
                 .map((part) => part.text)
                 .join('');

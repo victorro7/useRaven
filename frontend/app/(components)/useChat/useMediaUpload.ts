@@ -1,4 +1,4 @@
-// app/(components)/useMediaUpload.ts (Using modified useApiRequest)
+// app/(components)/useMediaUpload.ts
 import { useCallback } from 'react';
 import { useApiRequest } from './useApiRequest';
 
@@ -44,7 +44,7 @@ export const useMediaUpload = () => {
       // 3. Return the *final* GCS URL
       return gcs_url;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading image:', error);
       return null;
     }

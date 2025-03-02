@@ -1,4 +1,4 @@
-// app/(components)/useChats.ts
+// app/(components)/useChat/useChats.ts
 import { useState, useCallback } from 'react';
 import { useApiRequest } from './useApiRequest';
 import { useUser } from '@clerk/nextjs';
@@ -18,8 +18,8 @@ export const useChats = () => {
   const [chats, setChats] = useState<Chat[]>([]);
   const { user } = useUser();
   const router = useRouter();
-  const { setInput, selectedChatId } = useChatState();
-  const { messages, setMessages } = useChatMessages();
+  const { setInput } = useChatState();
+  const { setMessages } = useChatMessages();
 
 
   const fetchChats = useCallback(async () => {
@@ -55,7 +55,7 @@ export const useChats = () => {
       setMessages([]);
       router.push(`/raven`);
     }
-  }, [makeRequest,setChats]);
+  }, [router, setMessages, makeRequest, setChats]);
 
   const renameChat = useCallback(async (chatId: string, newTitle: string) => {
 

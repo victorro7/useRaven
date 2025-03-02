@@ -1,20 +1,21 @@
-// app/(components)/useChat/useChatMessages.ts (Completed)
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// app/(components)/useChat/useChatMessages.ts
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useApiRequest } from './useApiRequest';
 import { FormattedChatMessage, ChatMessagePart, generateId } from './constants';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useChatState } from './useChatState';
-import { useMediaUpload } from './useMediaUpload'; // Import useMediaUpload
+import { useMediaUpload } from './useMediaUpload';
 
 export const useChatMessages = () => {
     const { makeRequest, loading: isMessagesLoading, error: messagesError, abortController } = useApiRequest();
     const [messages, setMessages] = useState<FormattedChatMessage[]>([]);
-    const { selectedChatId, setInput, setSelectedChatId } = useChatState();
+    const { selectedChatId } = useChatState();
     const router = useRouter();
     const isMounted = useRef(true);
     const { getToken } = useAuth();
-    const { uploadMedia, loading: isUploading, error: uploadError } = useMediaUpload(); // Use useMediaUpload
+    const { uploadMedia } = useMediaUpload();
 
     useEffect(() => {
         isMounted.current = true;
@@ -35,7 +36,7 @@ export const useChatMessages = () => {
                 }
                 // Use media_type to determine the type
                 if (message.media_url && message.media_type) {
-                  const [mediaCategory, mediaType] = message.media_type.split('/');
+                  const [mediaCategory] = message.media_type.split('/');
                     parts.push({ type: mediaCategory as ChatMessagePart["type"], text: message.media_url });
                 }
                 return {
@@ -55,7 +56,7 @@ export const useChatMessages = () => {
     }, [makeRequest, router]);
 
     const submitMessage = useCallback(
-        async (text: string, mediaFiles: File[]) => { // Changed parameter name
+        async (text: string, mediaFiles: File[]) => {
           const newUserMessage: FormattedChatMessage = {
             role: 'user',
             parts: [],
@@ -70,7 +71,7 @@ export const useChatMessages = () => {
 
           // 1. Upload ALL media *first* (concurrently)
           let mediaUrls: string[] = [];
-          if (mediaFiles.length > 0) { // Changed variable name
+          if (mediaFiles.length > 0) {
             try {
               const uploadPromises = mediaFiles.map(file => uploadMedia(file));
               mediaUrls = (await Promise.all(uploadPromises)).filter((url): url is string => url !== null);
@@ -83,9 +84,9 @@ export const useChatMessages = () => {
               }
               // Add all media URLs to the parts array
               mediaUrls.forEach(url => {
-                const file = mediaFiles.find(f => uploadPromises.some(promise => promise.then(u => u === url)));
+                const file = mediaFiles.find(() => uploadPromises.some(promise => promise.then(u => u === url))); // Removed f
                 const mimeType = file ? file.type : 'other'; // Fallback to 'other' if not found
-                const [mediaCategory, mediaType] = mimeType.split('/');
+                const [mediaCategory] = mimeType.split('/');
                 newUserMessage.parts.push({ mimeType: mimeType, type: mediaCategory as ChatMessagePart["type"], text: url }); // Dynamic type
               });
             } catch (error) {
@@ -149,7 +150,7 @@ export const useChatMessages = () => {
                 const chunk = new TextDecoder().decode(value);
                 partialResponse += chunk;
 
-                let lines = partialResponse.split('\n');
+                const lines = partialResponse.split('\n');
                 partialResponse = lines.pop() || '';
 
                 for (const line of lines) {

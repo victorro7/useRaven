@@ -89,22 +89,22 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
         # contents.extend(message_list)
 
         response_text = ""
-        # for chunk in client.models.generate_content_stream(
-        #     model=model_name,
-        #     contents=[message_list],
-        #     config=types.GenerateContentConfig(
-        #         system_instruction=system_instruction,
-        #         tools=[
-        #             types.Tool(
-        #                 google_search=types.GoogleSearch()
-        #             ),
-        #         ],
-        #     ),
-        # ):
-        for chunk in model.generate_content(
-            contents,
-            stream=True
+        for chunk in client.models.generate_content_stream(
+            model=model_name,
+            contents=[message_list],
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                tools=[
+                    types.Tool(
+                        google_search=types.GoogleSearch()
+                    ),
+                ],
+            ),
         ):
+        # for chunk in model.generate_content(
+        #     contents,
+        #     stream=True
+        # ):
             if await request.is_disconnected():
                 print("Client disconnected")
                 return
