@@ -1,7 +1,7 @@
 # backend/routers/raven.py
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest, Message
+from pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest
 from database import get_db
 from auth import get_current_user
 import asyncpg
@@ -143,6 +143,7 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
 
 @router.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+    print(chat_request)
     if(len(chat_request.messages) >= 1):
         try:
             chat_id = chat_request.chatId

@@ -30,7 +30,6 @@ export const useChatMessages = () => {
         if (data) {
             const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
                 const parts: ChatMessagePart[] = [];
-                console.log(parts)
                 if (message.content && message.content.trim() !== "") {
                     parts.push({ text: message.content.replace(/\\n/g, '\n'), type: 'text' });
                 }
@@ -84,11 +83,10 @@ export const useChatMessages = () => {
               }
               // Add all media URLs to the parts array
               mediaUrls.forEach(url => {
-                // Get the MIME type from the file object (more reliable)
                 const file = mediaFiles.find(f => uploadPromises.some(promise => promise.then(u => u === url)));
                 const mimeType = file ? file.type : 'other'; // Fallback to 'other' if not found
                 const [mediaCategory, mediaType] = mimeType.split('/');
-                newUserMessage.parts.push({ type: mediaCategory as ChatMessagePart["type"], text: url }); // Dynamic type
+                newUserMessage.parts.push({ mimeType: mimeType, type: mediaCategory as ChatMessagePart["type"], text: url }); // Dynamic type
               });
             } catch (error) {
               console.error("Media upload error:", error);

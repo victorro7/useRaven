@@ -14,7 +14,8 @@ class ChatRenameRequest(BaseModel):
 
 class ChatMessagePart(BaseModel):
     text: str
-    type: Optional[str] = None  # Use Optional, and default to None
+    type: Optional[str] = None
+    mimeType: str | None = None
 
 class FormattedChatMessage(BaseModel):
     role: str

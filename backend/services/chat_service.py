@@ -13,7 +13,7 @@ import os
 import vertexai
 from google.cloud import aiplatform, storage
 from vertexai.generative_models import GenerativeModel, Part, GenerationConfig, Tool
-from pymodels import Message, ChatRequest  # Use relative import
+from pymodels import ChatRequest  # Use relative import
 from database import get_db_pool
 from fastapi import Depends
 import urllib.parse
@@ -43,16 +43,6 @@ model = GenerativeModel(
 )
 # --- Vertex Setup ---
 
-
-prompt="describe the video(s). provide a catagory for the video in your response"
-video_uri = str(
-    "gs://raven-uploads/videos/user_2t9aAwiUsishz1NuSJi13WPH9IK/512fb03b-7550-4e3a-8ce5-99a4f8444a98-max3d.mp4"
-    )
-video_file_ex = Part.from_uri(
-    uri=video_uri,
-    mime_type="video/mp4",
-)
-
 def extract_bucket_and_file_path(gcs_url):
     try:
         parsed_url = urllib.parse.urlparse(gcs_url)
@@ -75,45 +65,46 @@ def extract_bucket_and_file_path(gcs_url):
 async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
     try:
         files_list = []
-        contents =[]
+        contents = []
         db = await get_db_pool() #get the pool
         message_list = ""
         for message in chat_request.messages:
             for part in message.parts:
-                if part.type != "text":  # Use the .type attribute
-                    gcs_uri = extract_bucket_and_file_path(part.text)  # Use part.text
+                if part.type != "text":
+                    gcs_uri = part.text
+                    # gcs_uri = extract_bucket_and_file_path(part.text)
+                    # print(f"gcs_url: {gcs_uri}")
+                    # print(f"part.text: {part.text}")
                     if gcs_uri:
-                        mime_type = part.type  # Use the type directly
-                        if part.type == "image":
-                            mime_type = "image/jpeg"
-                        files_list.append(Part.from_uri(uri=gcs_uri, mime_type=mime_type))
+                        mime_type = part.mimeType
+                        files_list.append(Part.from_uri(uri=part.text, mime_type=mime_type))
                 else:
-                    message_list += f"{message.role.upper()}: {part.text}\n"  # Use part.text
+                    message_list += f"{message.role.upper()}: {part.text}\n"
 
         message_list += "ASSISTANT:"
 
         if files_list:
             contents = files_list + [message_list]
 
-        contents.extend(message_list)
+        # contents.extend(message_list)
 
         response_text = ""
-        for chunk in client.models.generate_content_stream(
-            model=model_name,
-            contents=[message_list],
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                tools=[
-                    types.Tool(
-                        google_search=types.GoogleSearch()
-                    ),
-                ],
-            ),
-        ):
-        # for chunk in model.generate_content(
-        #     contents,
-        #     stream=True
+        # for chunk in client.models.generate_content_stream(
+        #     model=model_name,
+        #     contents=[message_list],
+        #     config=types.GenerateContentConfig(
+        #         system_instruction=system_instruction,
+        #         tools=[
+        #             types.Tool(
+        #                 google_search=types.GoogleSearch()
+        #             ),
+        #         ],
+        #     ),
         # ):
+        for chunk in model.generate_content(
+            contents,
+            stream=True
+        ):
             if await request.is_disconnected():
                 print("Client disconnected")
                 return
@@ -149,40 +140,6 @@ async def add_custom_message_to_db(db, chat_id, user_id, role, content):
     else:
         print("Error: role or content missing.")
 
-# async def add_messages_to_db(db, chat_requests, chat_id, user_id):
-#     if not isinstance(chat_requests, list):
-#         chat_requests = [chat_requests]
-
-#     for chat_request in chat_requests:
-#         messages_to_add = get_last_messages(chat_request.messages)
-
-#         if messages_to_add:
-#             for message in messages_to_add:
-#                 message_id = str(uuid.uuid4())
-#                 role = message.role
-#                 content = ""
-#                 media_type = None  # Initialize media_type
-#                 media_url = None  # Initialize media_url
-#                 for part in message.parts:
-#                     if part.startswith("https://storage.googleapis.com"):
-#                         media_type = "image"
-#                         media_url = part
-#                     else:
-#                         content += part #concatenate the text
-#                 if role is not None and (content is not None or media_url is not None):
-#                     try:
-#                         await db.execute('''
-#                             INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
-#                             VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
-#                         ''', message_id, chat_id, user_id, role, content, media_type, media_url)
-#                         print(f"Message {message_id} inserted successfully.")
-#                     except Exception as e:
-#                         print(f"Error inserting message {message_id}: {e}")
-#                 else:
-#                     print("missing info")
-#         else:
-#             print("No messages to add")
-
 async def add_messages_to_db(db, chat_requests, chat_id, user_id):
     if not isinstance(chat_requests, list):
         chat_requests = [chat_requests]
@@ -197,16 +154,15 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
                 content = ""
                 media_type = None
                 media_url = None
-                print(message)
+
                 for part in message.parts:
-                    print(part)
                     part_text = part.text
                     part_type = part.type
 
                     if part_type == 'text':
                         content += part_text if part_text else ""
                     elif part_type:  # If it's NOT 'text', it's media
-                        media_type = part_type
+                        media_type = part.mimeType
                         media_url = part_text
                         # --- KEY PART: Insert EACH media item separately ---
                         if role is not None and media_url is not None:
