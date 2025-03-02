@@ -3,7 +3,7 @@ import Image from 'next/image';
 import UploadIcon from '../icons/UploadIcon';
 import SendIcon from '../icons/SendIcon';
 import { FormattedChatMessage } from '../useChat/constants';
-import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa'; // Import icons
+import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa';
 
 interface ChatInputProps {
   value: string;
@@ -12,7 +12,7 @@ interface ChatInputProps {
   messages: FormattedChatMessage[];
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, messages }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // Store all files
   const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Store preview URLs (images) or placeholders
   const textareaRef = useRef<HTMLTextAreaElement>(null);

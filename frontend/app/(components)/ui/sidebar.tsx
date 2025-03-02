@@ -173,12 +173,12 @@ export const SidebarLink = ({
 }) => {
   const { open, animate } = useSidebar();
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (onClick) {
-      e.preventDefault(); // Prevent default navigation if onClick is provided
-      onClick(e);
-    }
-  };
+  // const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  //   if (onClick) {
+  //     e.preventDefault(); // Prevent default navigation if onClick is provided
+  //     onClick(e);
+  //   }
+  // };
 
   return (
     <Link

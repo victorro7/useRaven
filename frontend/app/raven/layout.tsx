@@ -13,7 +13,6 @@ import { useChatState } from '@/app/(components)/useChat/useChatState';
 
 interface LayoutProps {
     children: React.ReactNode;
-    messages: any[];
 }
 
 export default function RavenLayout({ children }: LayoutProps) {
@@ -21,9 +20,9 @@ export default function RavenLayout({ children }: LayoutProps) {
     const chatId = params.chatId as string;
     const { isLoaded, isSignedIn } = useUser();
     const [isMobile, setIsMobile] = useState(false); // Add isMobile state
-    const { input, selectedChatId, setSelectedChatId } = useChatState();
+    const { selectedChatId, setSelectedChatId } = useChatState();
     const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
-    const { messages, isMessagesLoading, loadChatMessages, submitMessage} = useChatMessages();
+    const {loadChatMessages} = useChatMessages();
 
     // --- COMBINED INITIAL LOAD AND CHAT LOADING ---
     useEffect(() => {
@@ -82,7 +81,6 @@ export default function RavenLayout({ children }: LayoutProps) {
                 createNewChat={createNewChat}
                 deleteChat={deleteChat}
                 renameChat={renameChat}
-                messages={messages}
                 fetchChats={fetchChats}
                 selectedChatId={selectedChatId}
                 disableNewChatButton={disableNewChatButton}
@@ -95,7 +93,7 @@ export default function RavenLayout({ children }: LayoutProps) {
 
     return (
             <div className="flex h-screen bg-[#09090b] text-black">
-            <ChatSidebar disableNewChatButton={disableNewChatButton} chats={chats} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} messages={messages} selectedChatId={selectedChatId} />
+            <ChatSidebar disableNewChatButton={disableNewChatButton} chats={chats} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} selectedChatId={selectedChatId} />
             <div className="flex flex-col flex-grow">
                 <Navbar title="Raven" />
                 <main className="flex-grow bg-[#09090b]">

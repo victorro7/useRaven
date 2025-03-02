@@ -1,20 +1,19 @@
-// app/(components)/AuthForm.tsx
+ /* eslint-disable @typescript-eslint/no-explicit-any */
+// app/(components)/auth/AuthForm.tsx
 "use client";
 import React from 'react';
 import { useSignIn } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import { Button } from "@/app/(components)/ui/button";
 import GoogleLogo from '../icons/GoogleLogo';
-import { useRouter } from 'next/navigation';
 
 interface AuthFormProps {
   className?: string;
   redirect?: string;
 }
 
-export function AuthForm({ className, redirect = "/", ...props }: AuthFormProps) {
+export function AuthForm({ className, redirect = "/raven", ...props }: AuthFormProps) {
   const { signIn, isLoaded: isSignInLoaded } = useSignIn();
-  const router = useRouter();
 
   // Only show loading state if Clerk is not loaded
   if (!isSignInLoaded) {
@@ -31,12 +30,12 @@ export function AuthForm({ className, redirect = "/", ...props }: AuthFormProps)
 
     try {
       // Use authenticateWithOAuth
-      const result = await signIn.authenticateWithRedirect({
+      await signIn.authenticateWithRedirect({
         strategy: `oauth_${provider}`, // Construct the strategy string
         redirectUrl: '/sso-callback',   // URL for the callback route
         redirectUrlComplete: redirect,       // Where to go after successful sign-in/up
       });
-        console.log(result) //For debugging
+        // console.log(result) //For debugging
 
     } catch (error: any) {
       console.error(`OAuth Sign-In Error (${provider}):`, error);
