@@ -16,6 +16,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // Store all files
   const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Store preview URLs (images) or placeholders
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropAreaRef = useRef<HTMLDivElement>(null);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -28,7 +29,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
         if (file.type.startsWith('image/')) {
           return URL.createObjectURL(file);
         } else {
-          return 'placeholder'; // Use a placeholder string
+          return 'placeholder';
         }
       });
       setPreviewUrls((prevPreviews) => [...prevPreviews, ...newPreviews]);
@@ -61,20 +62,57 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
     }
   };
 
-    // Helper function to get icon based on file type
-    const getFileIcon = (fileType: string) => {
-        if (fileType.startsWith('video/')) {
-          return <FaVideo size={24} />;
-        } else if (fileType.startsWith('audio/')) {
-          return <FaFileAudio size={24} />;
+  // Helper function to get icon based on file type
+  const getFileIcon = (fileType: string) => {
+      if (fileType.startsWith('video/')) {
+        return <FaVideo size={24} style={{ color: 'white' }}/>;
+      } else if (fileType.startsWith('audio/')) {
+        return <FaFileAudio size={24} style={{ color: 'white' }}/>;
+      } else {
+        return <FaFileAlt size={24} style={{ color: 'white' }}/>;
+      }
+    };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+
+      const newPreviews = Array.from(files).map((file) => {
+        if (file.type.startsWith('image/')) {
+          return URL.createObjectURL(file);
         } else {
-          return <FaFileAlt size={24} />; // Default icon for documents/other
+          return 'placeholder';
         }
-      };
+      });
+      setPreviewUrls((prevPreviews) => [...prevPreviews, ...newPreviews]);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
-      <div className={`w-full p-1 ${borderRadiusClass} bg-gray-800`}>
+      <div
+      ref={dropAreaRef} // Attach the ref here
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+        className={`w-full p-1 ${borderRadiusClass} bg-gray-800`}>
         {/* File Preview (Images and Icons) */}
         {previewUrls.length > 0 && (
           <div className="flex flex-row flex-wrap items-center gap-2 p-2">
@@ -128,11 +166,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
               <input
                 type="file"
                 id="file-upload"
-                accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" // Accept multiple types
+                accept="image/*, .heic"
                 onChange={handleFileChange}
                 className="hidden"
                 multiple
               />
+              {/* video/*,audio/*,application/pdf,.heic,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv */}
               <div className='self-start'><UploadIcon /></div>
             </label>
             <textarea
