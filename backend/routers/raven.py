@@ -1,4 +1,5 @@
 # backend/routers/raven.py
+from httpx import request
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest
@@ -18,11 +19,30 @@ router = APIRouter()
 storage_client = storage.Client()
 # --- Google Cloud Storage Setup ---
 
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)
+
 # --- Raven Chat Endpoints ---
 @router.post("/api/upload-url", response_model=PresignedUrlResponse)
 async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = Depends(get_current_user)):
     """Generates a presigned URL for uploading a file to GCS."""
     try:
+        # --- FILE SIZE CHECK (Backend) ---
+        if request_body.contentType.startswith("image/") :
+            max_file_size = 10 * 1024 * 1024 #10 mb
+        elif request_body.contentType.startswith("video/"):
+            max_file_size = 50 * 1024 * 1024 #50mb
+        elif request_body.contentType.startswith("audio/"):
+            max_file_size = 20 * 1024 * 1024 #20mb
+        else:
+            max_file_size = MAX_FILE_SIZE #default
+
+        # Get the content length from the request headers
+        content_length = int(request.headers.get("Content-Length", 0))
+
+        if content_length > max_file_size:
+            raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {max_file_size / (1024 * 1024)}MB")
+        # --- END FILE SIZE CHECK ---
+
         bucket_name = os.environ["GCS_BUCKET_NAME"]  # Get bucket name from environment variable
         bucket = storage_client.bucket(bucket_name)
 
@@ -156,7 +176,8 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
         chat_id = created_chat.chat_id
 
     try:
-        await add_messages_to_db(db, chat_request, chat_id, user_id)
+        if chat_id:
+            await add_messages_to_db(db, chat_request, chat_id, user_id)
         return StreamingResponse(generate_stream(db, chat_request, request, chat_id, user_id), media_type="text/event-stream")
     except Exception as e:
         print(f"Database error in chat endpoint: {e}")
