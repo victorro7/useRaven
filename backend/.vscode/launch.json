@@ -14,7 +14,7 @@
             ],
             "env": {
                 "DATABASE_URL": "postgresql://kidvic:klairvoyant@/cloudsql/klairvoyant:us-central1:raven-klair-db-dev/raven_klair_db",
-                "GOOGLE_API_KEY": "AIzaSyA2QfYk7HHm6yGjMBvQiwIn1NpCgxlCduY"
+                "GEMINI_API_KEY": "AIzaSyA2QfYk7HHm6yGjMBvQiwIn1NpCgxlCduY"
             },
             "jinja": true,
             "justMyCode": true

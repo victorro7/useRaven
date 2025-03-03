@@ -42,7 +42,7 @@ export const useChats = () => {
         });
       if (data) {
         setChats(prevChats => [{ chatId: data.chat_id, title: `New Chat`, userId: user.id!, createdAt: Date.now() }, ...prevChats]);
-        router.push(`/raven/chat/${data.chat_id}`);
+        router.push(`/chat/${data.chat_id}`);
       }
   }, [makeRequest, user?.id, router, setMessages, setInput]);
 
@@ -53,7 +53,7 @@ export const useChats = () => {
     }
     if (currentChatId === chatId) {
       setMessages([]);
-      router.push(`/raven`);
+      router.push(`/chat`);
     }
   }, [router, setMessages, makeRequest, setChats]);
 
@@ -71,7 +71,7 @@ export const useChats = () => {
             )
         );
       }
-  }, [setChats]);
+  }, [setChats, makeRequest]);
 
   return { chats, setChats, fetchChats, createNewChat, deleteChat, renameChat, isChatsLoading, chatsError };
 };

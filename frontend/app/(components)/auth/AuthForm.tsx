@@ -12,7 +12,7 @@ interface AuthFormProps {
   redirect?: string;
 }
 
-export function AuthForm({ className, redirect = "/raven", ...props }: AuthFormProps) {
+export function AuthForm({ className, redirect = "/chat", ...props }: AuthFormProps) {
   const { signIn, isLoaded: isSignInLoaded } = useSignIn();
 
   // Only show loading state if Clerk is not loaded

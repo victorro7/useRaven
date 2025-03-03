@@ -3,7 +3,7 @@
 import { AuthForm } from '../(components)/auth/AuthForm';
 
 export default function Page() {
-  const redirectUrl =  "/raven"
+  const redirectUrl =  "/chat"
 
   return (
     <div className="flex items-center justify-center h-screen bg-[#09090b]">

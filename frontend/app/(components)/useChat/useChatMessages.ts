@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useChatState } from './useChatState';
 import { useMediaUpload } from './useMediaUpload';
+import { BASE_URL } from './constants';
 
 export const useChatMessages = () => {
     const { makeRequest, loading: isMessagesLoading, error: messagesError, abortController } = useApiRequest();
@@ -20,7 +21,7 @@ export const useChatMessages = () => {
     useEffect(() => {
         isMounted.current = true;
         return () => {
-            isMounted.current = false;
+          isMounted.current = false;
         }
     }, []);
 
@@ -36,7 +37,7 @@ export const useChatMessages = () => {
                 }
                 // Use media_type to determine the type
                 if (message.media_url && message.media_type) {
-                  const [mediaCategory] = message.media_type.split('/');
+                    const [mediaCategory] = message.media_type.split('/');
                     parts.push({ type: mediaCategory as ChatMessagePart["type"], text: message.media_url });
                 }
                 return {
@@ -50,10 +51,10 @@ export const useChatMessages = () => {
             }
         } else {
             if (isMounted.current) {
-                router.push('/raven');
+                router.push('/chat');
             }
         }
-    }, [makeRequest, router]);
+    }, [router]);
 
     const submitMessage = useCallback(
         async (text: string, mediaFiles: File[]) => {
@@ -119,7 +120,7 @@ export const useChatMessages = () => {
             if(!token) {
                 throw new Error("Authentication token not available.");
             }
-            const response = await fetch('http://localhost:8000/chat', {
+            const response = await fetch(`${BASE_URL}/chat`, {
                     method: 'POST',
                     headers: {
                     'Content-Type': 'application/json',
