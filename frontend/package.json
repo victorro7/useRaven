@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^1.1.13",
+    "@ai-sdk/google": "^1.1.18",
     "@ai-sdk/openai": "^1.1.10",
     "@ai-sdk/react": "^1.1.13",
     "@clerk/nextjs": "^6.11.3",
@@ -20,7 +20,7 @@
     "@tabler/icons-react": "^3.30.0",
     "@types/formidable": "^3.4.5",
     "@vercel/analytics": "^1.5.0",
-    "ai": "^4.1.36",
+    "ai": "^4.1.50",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "formidable": "^3.5.2",
