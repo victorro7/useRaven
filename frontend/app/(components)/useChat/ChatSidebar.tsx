@@ -3,12 +3,12 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "../ui/sidebar";
-import { IconMessage2, IconPlus, IconTrash, IconEdit } from "@tabler/icons-react";
+import { IconMessage2, IconPlus, IconTrash, IconEdit, IconLogout2 } from "@tabler/icons-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 
 interface SidebarProps {
   chats: any[];
@@ -165,11 +165,12 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
                 }}
               />
             )}
+            <SignOutButton>
             <SidebarLink
                 link={{
                   label: "Logout",
                   href: "#", // Use '#'
-                  icon: <IconMessage2 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
+                  icon: <IconLogout2 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />,
                   // You could add lastMessageSnippet and timestamp here
                 }}
                 onClick={async (e) => {
@@ -177,6 +178,7 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
                   //TODO: Implement
                 }}
               />
+              </SignOutButton>
         </div>
         {/* User Profile/Logout*/}
       </SidebarBody>
