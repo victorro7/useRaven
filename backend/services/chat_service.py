@@ -1,14 +1,14 @@
 # backend/services/chat_service.py
 import asyncio
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Tuple, Union
 from google import genai
 from google.genai import types
 import asyncpg
 import uuid
 from uuid import uuid4
 from fastapi import Request
-from pydantic import BaseModel, Field  # Import BaseModel and Field
+from pydantic import BaseModel, Field
 import os
 import vertexai
 from google.cloud import aiplatform, storage
@@ -17,11 +17,6 @@ from pymodels import ChatRequest  # Use relative import
 from database import get_db_pool
 from fastapi import Depends
 import urllib.parse
-
-# --- Gemini Setup ---
-project_name="klairvoyant"
-client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
-# --- Gemini Setup ---
 
 def load_text_from_file(filename):
     try:
@@ -33,6 +28,10 @@ def load_text_from_file(filename):
     except Exception as e:
         print(f"An error occurred while reading the file: {e}")
 
+# --- Gemini Setup ---
+project_name="ravenklair"
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
 # --- Vertex Setup ---
 vertexai.init(project="klairvoyant")
 model_name = "gemini-2.0-pro-exp-02-05"
@@ -42,91 +41,96 @@ model = GenerativeModel(
     system_instruction=system_instruction,
 )
 # --- Vertex Setup ---
-
-def extract_bucket_and_file_path(gcs_url):
-    try:
-        parsed_url = urllib.parse.urlparse(gcs_url)
-        if parsed_url.netloc != "storage.googleapis.com":
-            return None  # Not a GCS URL
-
-        path_parts = parsed_url.path.strip('/').split('/')
-        if len(path_parts) < 2:
-            return None  # Invalid GCS URL format
-
-        bucket_name = path_parts[0]
-        file_path = '/'.join(path_parts[1:])
-        uri = f"gs://{bucket_name}/{file_path}"
-
-        return uri #return just the uri.
-
-    except Exception:
-        return None
-
-async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
-    try:
-        files_list = []
-        contents = []
-        db = await get_db_pool() #get the pool
-        message_list = ""
-        for message in chat_request.messages:
+# --- Gemini Setup ---
+async def _prepare_contents(chat_request: ChatRequest) -> Tuple[List[Part], str]:
+    """Prepares the contents for the generative model."""
+    files_list = []
+    message_list = ""
+    for message in chat_request.messages:
             for part in message.parts:
                 if part.type != "text":
                     gcs_uri = part.text
-                    # gcs_uri = extract_bucket_and_file_path(part.text)
-                    # print(f"gcs_url: {gcs_uri}")
-                    # print(f"part.text: {part.text}")
                     if gcs_uri:
                         mime_type = part.mimeType
                         files_list.append(Part.from_uri(uri=part.text, mime_type=mime_type))
                 else:
                     message_list += f"{message.role.upper()}: {part.text}\n"
 
-        message_list += "ASSISTANT:"
+    message_list += "ASSISTANT:"
+    return files_list, message_list
 
-        if files_list:
-            contents = files_list + [message_list]
+async def _generate_stream_vertexai(contents: List[Part], request: Request) -> AsyncGenerator[str, None]:
+    """Generates content using Vertex AI with streaming."""
+    try:
+        for chunk in model.generate_content(contents, stream=True):
+            if await request.is_disconnected():
+                print("Client disconnected")
+                return
+            yield json.dumps({"response": chunk.text}) + "\n"
+            await asyncio.sleep(0)
+    except Exception as e:
+        print(f"Error in Vertex AI streaming: {e}")
+        yield json.dumps({"error": str(e)}) + "\n"
 
-        # contents.extend(message_list)
-
-        response_text = ""
+async def _generate_stream_gemini(message_list: str, request: Request) -> AsyncGenerator[str, None]:
+    """Generates content using Gemini API (text-only) with streaming."""
+    try:
         for chunk in client.models.generate_content_stream(
             model=model_name,
             contents=[message_list],
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
-                tools=[
-                    types.Tool(
-                        google_search=types.GoogleSearch()
-                    ),
-                ],
+                tools=[types.Tool(google_search=types.GoogleSearch())],
             ),
         ):
-        # for chunk in model.generate_content(
-        #     contents,
-        #     stream=True
-        # ):
             if await request.is_disconnected():
                 print("Client disconnected")
                 return
+            yield json.dumps({"response": chunk.text}) + "\n"
+            await asyncio.sleep(0)
+    except Exception as e:
+        print(f"Error in Gemini Pro streaming: {e}")
+        yield json.dumps({"error": str(e)}) + "\n"
 
+async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
+    """Generates a streamed response for the chat, handling both text and media."""
+    db = await get_db_pool()
+    try:
+        files_list, message_list = await _prepare_contents(chat_request)
+
+        if files_list:
+            contents = files_list + [message_list]
+            async for chunk in _generate_stream_vertexai(contents, request):
+                yield chunk
+        else:
+            async for chunk in _generate_stream_gemini(message_list, request):
+                yield chunk
+
+        # Collect all chunks to build the full response text
+        response_text = ""
+        # Reset the generator by calling it again (This is important for correct functionality)
+        if files_list:
+          generator =  _generate_stream_vertexai(contents, request)
+        else:
+          generator =  _generate_stream_gemini(message_list, request)
+
+        async for chunk in generator:
             try:
-                curr_response = json.dumps(chunk.text)
-                if curr_response:
-                    response_text += curr_response.strip('"')
-
-                yield json.dumps({"response": chunk.text}) + "\n"
-                await asyncio.sleep(0)
+                # Parse the JSON and extract the text
+                response_part = json.loads(chunk.strip())
+                if "response" in response_part:
+                  response_text += response_part["response"]
             except:
-                continue
+                continue #failed to parse, so just continue
 
         if response_text:
             await add_custom_message_to_db(db, chat_id, user_id, "assistant", response_text)
 
     except Exception as e:
+        print(f"General error in generate_stream: {e}")
         yield json.dumps({"error": str(e)}) + "\n"
 
 async def add_custom_message_to_db(db, chat_id, user_id, role, content):
-
     message_id = str(uuid.uuid4())
     if role is not None and content is not None:
         try:
@@ -136,7 +140,7 @@ async def add_custom_message_to_db(db, chat_id, user_id, role, content):
             ''', message_id, chat_id, user_id, role, content)
             print(f"Raven Message {message_id} inserted successfully.")
         except Exception as e:
-            print(f"Error inserting message {message_id}: {e}")
+            print(f"Error inserting Raven message {message_id}: {e}")
     else:
         print("Error: role or content missing.")
 

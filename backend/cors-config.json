@@ -1,0 +1,8 @@
+[
+    {
+    "origin": ["http://localhost:3000", "https://useraven.app"],
+    "method": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "x-goog-resumable"],
+    "maxAgeSeconds": 3600
+    }
+]

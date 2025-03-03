@@ -14,7 +14,8 @@ CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 
 # Define your allowed origins (replace with your frontend URL)
 origins = [
-    "http://localhost:3000",  # Example: your development frontend
+    "http://localhost:3000",
+    "https://useraven.app",
 ]
 
 # Initialize Clerk SDK

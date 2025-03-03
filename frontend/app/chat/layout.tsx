@@ -6,7 +6,7 @@ import { ChatSidebar } from '../(components)/useChat/ChatSidebar';
 import Navbar from '../(components)/Navbar';
 import { useUser } from '@clerk/nextjs';
 import Spinner from '@/app/(components)/icons/Spinner';
-import MobileLayout from '@/app/raven/MobileLayout';
+import MobileLayout from '@/app/chat/MobileLayout';
 import { useChats } from '@/app/(components)/useChat/useChats';
 import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
 import { useChatState } from '@/app/(components)/useChat/useChatState';
