@@ -82,11 +82,11 @@ export default function ChatPage() {
     // Helper function for media icons
     const getMediaIcon = (mediaType: string) => {
         if (mediaType?.startsWith('video')) {
-        return <FaVideo size={64} />;
+        return <FaVideo size={64} style={{ color: 'white' }}/>;
         } else if (mediaType?.startsWith('audio')) {
-        return <FaFileAudio size={64} />;
+        return <FaFileAudio size={64} style={{ color: 'white' }}/>;
         }
-        return <FaFileAlt size={64} />; // Default for documents/other
+        return <FaFileAlt size={64} style={{ color: 'white' }}/>; // Default for documents/other
     };
 
   return (
