@@ -79,15 +79,15 @@ export default function ChatPage() {
 
   const userName = user?.firstName || '';
 
-    // Helper function for media icons
-    const getMediaIcon = (mediaType: string) => {
-        if (mediaType?.startsWith('video')) {
-        return <FaVideo size={64} style={{ color: 'white' }}/>;
-        } else if (mediaType?.startsWith('audio')) {
-        return <FaFileAudio size={64} style={{ color: 'white' }}/>;
-        }
-        return <FaFileAlt size={64} style={{ color: 'white' }}/>; // Default for documents/other
-    };
+  // Helper function for media icons
+  const getMediaIcon = (mediaType: string) => {
+      if (mediaType?.startsWith('video')) {
+      return <FaVideo size={64} style={{ color: 'white' }}/>;
+      } else if (mediaType?.startsWith('audio')) {
+      return <FaFileAudio size={64} style={{ color: 'white' }}/>;
+      }
+      return <FaFileAlt size={64} style={{ color: 'white' }}/>; // Default for documents/other
+  };
 
   return (
     <div className="bg-[#09090b] w-full mx-auto flex flex-col h-full">
