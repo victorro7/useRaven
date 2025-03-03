@@ -13,7 +13,7 @@ export default function LandingPage() {
 
     useEffect(() => {
         if (isLoaded && isSignedIn) {
-          router.push('/raven'); // Redirect to /raven if signed in
+          router.push('/chat'); // Redirect to raven chat if signed in
         }
     }, [isLoaded, isSignedIn, router]);
 

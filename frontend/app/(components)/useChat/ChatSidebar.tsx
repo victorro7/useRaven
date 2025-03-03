@@ -91,7 +91,7 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
             {chats.map((chat) => (
               <div key={chat.chatId} className="flex items-center justify-between group">
                 <Link
-                    href={`/raven/chat/${chat.chatId}`}
+                    href={`/chat/${chat.chatId}`}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md w-full",  // Apply to the Link
                       // selectedChatId === chat.chatId ? "bg-gray-700" : "bg-gray-700 transition"
