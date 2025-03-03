@@ -123,7 +123,7 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
             except:
                 continue #failed to parse, so just continue
 
-        if response_text:
+        if response_text and chat_id:
             await add_custom_message_to_db(db, chat_id, user_id, "assistant", response_text)
 
     except Exception as e:
