@@ -17,92 +17,103 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Store preview URLs (images) or placeholders
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropAreaRef = useRef<HTMLDivElement>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
+  const MAX_FILES = 20;
+  const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
+      if (!files) return;
+      handleFiles(Array.from(files));
+    };
+
+    const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const files = event.dataTransfer.files ? Array.from(event.dataTransfer.files) : [];
+        handleFiles(files);
+    };
+
+    //Unified file handling
+    const handleFiles = (files: File[]) => {
       const newFiles = Array.from(files);
-      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+      console.log(selectedFiles.length + newFiles.length)
+      if (selectedFiles.length + newFiles.length > MAX_FILES) {
+          setErrorMessage(`You can upload a maximum of ${MAX_FILES} files.`);
+          return;
+      }
 
-      // Generate previews (URLs for images, placeholders for others)
-      const newPreviews = Array.from(files).map((file) => {
-        if (file.type.startsWith('image/')) {
-          return URL.createObjectURL(file);
-        } else {
-          return 'placeholder';
+      // Check file sizes
+      for (const file of newFiles) {
+        if (file.size > MAX_FILE_SIZE) {
+          setErrorMessage(`File "${file.name}" is too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`);
+          return;
         }
+      }
+
+      // If all checks pass, add the files
+      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+      const newPreviews = newFiles.map((file) => {
+          if (file.type.startsWith('image/')) {
+              return URL.createObjectURL(file);
+          } else {
+              return 'placeholder';
+          }
       });
       setPreviewUrls((prevPreviews) => [...prevPreviews, ...newPreviews]);
+      setErrorMessage(null); // Clear any previous error
     }
-  };
 
-  const handleRemoveFile = (indexToRemove: number) => {
-    setSelectedFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
-    setPreviewUrls((prevPreviews) => prevPreviews.filter((_, index) => index !== indexToRemove));
-  };
+    const handleRemoveFile = (indexToRemove: number) => {
+      setSelectedFiles((prevFiles) => prevFiles.filter((_, index) => index !== indexToRemove));
+      setPreviewUrls((prevPreviews) => prevPreviews.filter((_, index) => index !== indexToRemove));
+      setErrorMessage(null);
+    };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    onSubmit(event, selectedFiles);
-    setSelectedFiles([]);
-    setPreviewUrls([]);
-  };
+    const handleSubmit = (event: React.FormEvent) => {
+      event.preventDefault();
+      onSubmit(event, selectedFiles);
+      setSelectedFiles([]);
+      setPreviewUrls([]);
+    };
 
-  const borderRadiusClass = previewUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';
+    const borderRadiusClass = previewUrls.length > 0 ? 'rounded-lg' : 'rounded-[1rem]';
 
-  useEffect(() => {
-    adjustHeight();
-  }, [value]);
+    useEffect(() => {
+      adjustHeight();
+    }, [value]);
 
-  const adjustHeight = () => {
-    if (textareaRef.current) {
-      const textarea = textareaRef.current;
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
-    }
-  };
-
-  // Helper function to get icon based on file type
-  const getFileIcon = (fileType: string) => {
-      if (fileType.startsWith('video/')) {
-        return <FaVideo size={24} style={{ color: 'white' }}/>;
-      } else if (fileType.startsWith('audio/')) {
-        return <FaFileAudio size={24} style={{ color: 'white' }}/>;
-      } else {
-        return <FaFileAlt size={24} style={{ color: 'white' }}/>;
+    const adjustHeight = () => {
+      if (textareaRef.current) {
+        const textarea = textareaRef.current;
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
       }
     };
 
-  // Drag and drop handlers
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
-
-      const newPreviews = Array.from(files).map((file) => {
-        if (file.type.startsWith('image/')) {
-          return URL.createObjectURL(file);
+    // Helper function to get icon based on file type
+    const getFileIcon = (fileType: string) => {
+        if (fileType.startsWith('video/')) {
+          return <FaVideo size={24} style={{ color: 'white' }}/>;
+        } else if (fileType.startsWith('audio/')) {
+          return <FaFileAudio size={24} style={{ color: 'white' }}/>;
         } else {
-          return 'placeholder';
+          return <FaFileAlt size={24} style={{ color: 'white' }}/>;
         }
-      });
-      setPreviewUrls((prevPreviews) => [...prevPreviews, ...newPreviews]);
-    }
-  };
+      };
+
+    // Drag and drop handlers
+    const handleDragEnter = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+      e.preventDefault();
+    };
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col w-full">
@@ -114,6 +125,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
       onDrop={handleDrop}
         className={`w-full p-1 ${borderRadiusClass} bg-gray-800`}>
         {/* File Preview (Images and Icons) */}
+        {errorMessage && (
+          <div className="text-red-500 mb-2">
+            {errorMessage}
+          </div>
+        )}
         {previewUrls.length > 0 && (
           <div className="flex flex-row flex-wrap items-center gap-2 p-2">
             {previewUrls.map((previewUrl, index) => (
