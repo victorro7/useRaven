@@ -161,22 +161,3 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
     except Exception as e:
         print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
-
-@router.post("/initialmessage")
-async def initial_message(chat_request: ChatRequest, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
-    if(len(chat_request.messages) >= 1):
-        try:
-            chat_id = chat_request.chatId
-        except (IndexError, AttributeError) as e:
-            print(f"Error extracting chat ID: {e}")
-            raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
-    else:
-        chat_creation_request = ChatCreateRequest(user_id=user_id)
-        created_chat = await create_chat(chat_creation_request, user_id, db)
-        chat_id = created_chat.chat_id
-
-    try:
-        await add_messages_to_db(db, chat_request, chat_id, user_id)
-    except Exception as e:
-        print(f"Database error in chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")

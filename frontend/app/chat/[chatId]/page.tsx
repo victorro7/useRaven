@@ -103,6 +103,11 @@ export default function ChatPage() {
         <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle ? 'hidden' : ''}`}>
         {messages.map((message) => {
             const mediaParts = message.parts.filter((part) => part.type !== 'text' && part.type !== undefined);
+            const textContent = message.parts
+              .filter((part) => part.type === 'text')
+              .map((part) => part.text)
+              .join('');
+
             message.parts
                 .filter((part) => part.type === 'text')
                 .map((part) => part.text)
@@ -141,11 +146,13 @@ export default function ChatPage() {
                 )}
 
                 {/* ChatMessage for Text Content */}
-                <ChatMessage
-                  key={message.id + '_text'}  // Unique key for text part
-                  role={message.role}
-                  content={message.parts.find(part => part.type === 'text')?.text || ''}
-                />
+                {textContent.trim() && ( // Only render if there's actual text
+                    <ChatMessage
+                      key={message.id + '_text'}
+                      role={message.role}
+                      content={textContent}
+                    />
+                  )}
               </div>
             );
           })}
