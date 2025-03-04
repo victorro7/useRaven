@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from svix.webhooks import Webhook, WebhookVerificationError
-from routers import raven, klair
+from .routers import raven, klair
 from database import init_db, close_db
 from pymodels import *
 import os

@@ -6,7 +6,7 @@ from pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, Cha
 from database import get_db
 from auth import get_current_user
 import asyncpg
-from services.chat_service import generate_stream, add_messages_to_db, add_custom_message_to_db  # Import service functions
+from services.chat_service import generate_stream, add_messages_to_db  # Import service functions
 import uuid
 from typing import List
 from google.cloud import storage
