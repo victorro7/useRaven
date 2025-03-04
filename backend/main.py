@@ -10,7 +10,6 @@ import os
 from dotenv import load_dotenv
 import asyncpg
 import uvicorn
-from pydantic import ValidationError
 
 load_dotenv()
 
@@ -38,29 +37,21 @@ app.add_middleware(
 @app.post("/clerk-webhook")
 async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_db_pool)):
     """Handles Clerk webhooks."""
+    print("request: ", request)
     payload = await request.body()
+    print("payload: ", payload)
     headers = request.headers
-
+    print("header: ", headers)
     try:
-        # 1. Parse the payload using Pydantic FIRST
-        payload_str = payload.decode("utf-8")  # Decode bytes to string
-        parsed_payload = ClerkWebhookPayload.model_validate_json(payload_str) # Use Pydantic for parsing
-
-        # 2. THEN, verify the signature
         wh = Webhook(webhook_secret)
-        wh.verify(payload, headers)  # Verify the webhook signature (still pass raw payload)
-
-        # Access data via the Pydantic model
-        data = parsed_payload.data
-        event_type = parsed_payload.type
-        event_id = parsed_payload.id
-
-    except WebhookVerificationError as e:
-        raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
-    except ValidationError as e:
-        raise HTTPException(status_code=422, detail=f"Invalid webhook payload: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print("wb: ", wh)
+        evt = wh.verify(payload, headers)  # Verify the webhook signature
+        print("evt: ", evt)
+        data = evt['data']
+        print("data: ", data)
+        event_type = evt['type']
+        print("evt_type: ", event_type)
+        event_id = evt['id'] # Get the event ID for idempotency
 
     except WebhookVerificationError as e:
         raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
@@ -95,12 +86,18 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
 async def create_user(db, user_data: Dict):
     """Creates a new user in the database."""
     try:
+        print("creat user data:", user_data)
         # Extract relevant data from the user_data dictionary
         user_id = user_data['id']
+        print("user_id: ", user_id)
         email = user_data['email_addresses'][0]['email_address']  # Get the primary email
+        print("email: ", email)
         first_name = user_data.get('first_name')  # Use .get() for optional fields
+        print("first name: ", first_name)
         last_name = user_data.get('last_name')
+        print ("last name: ", last_name)
         profile_image_url = user_data.get('profile_image_url')
+        print("profile_image_url: ", profile_image_url)
 
         await db.execute('''
             INSERT INTO users (id, email, first_name, last_name, profile_image_url)
