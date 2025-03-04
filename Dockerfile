@@ -21,4 +21,4 @@ COPY ./backend /app/backend
 # No longer needed: ENV PORT=8000
 
 # Run the application using Uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", 8080]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0"]
