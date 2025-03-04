@@ -74,7 +74,7 @@ export default function RavenLayout({ children }: LayoutProps) {
 
     if (isMobile) {
         return (
-          <div className="h-screen bg-[#09090b]">
+          <div className="z-10 h-screen bg-[#09090b]">
             <MobileLayout
                 chats={chats}
                 loadChat={loadChatMessages}
@@ -92,7 +92,7 @@ export default function RavenLayout({ children }: LayoutProps) {
     }
 
     return (
-            <div className="flex h-screen bg-[#09090b] text-black">
+            <div className="z-10 flex h-screen bg-[#09090b] text-black">
             <ChatSidebar disableNewChatButton={disableNewChatButton} chats={chats} createNewChat={createNewChat} deleteChat={deleteChat} renameChat={renameChat} selectedChatId={selectedChatId} />
             <div className="flex flex-col flex-grow">
                 <Navbar title="Raven" />
