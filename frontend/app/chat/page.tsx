@@ -4,6 +4,7 @@ import React from 'react';
 import Spinner from '@/app/(components)/icons/Spinner';
 import { useUser } from '@clerk/nextjs';
 import { TypewriterEffectSmooth } from "@/app/(components)/ui/typewriter-effect";
+import { BackgroundBeams } from "@/app/(components)/ui/background-beams";
 
 export default function Home() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -49,10 +50,9 @@ export default function Home() {
                 <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
                    <TypewriterEffectSmooth className="text-white" words={words} />
                 </h2>
+                <BackgroundBeams />
             </div>
         )}
-        <div className="w-full sm:max-w-2xl mx-auto flex-grow relative">
-        </div>
     </div>
 );
 }
