@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from svix.webhooks import Webhook, WebhookVerificationError
 from .routers import raven
-from database import init_db, close_db, get_db_pool
-from pymodels import *
+from .database import init_db, close_db, get_db_pool
+from .pymodels import *
 import os
 from dotenv import load_dotenv
 import asyncpg
