@@ -67,7 +67,7 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
 
   return (
     <Sidebar open={open} setOpen={setOpen}>
-      <SidebarBody className="justify-between gap-10" onClick={(e) => {
+      <SidebarBody className="md:z-10 justify-between gap-10" onClick={(e) => {
             // Check if the click target is the input field or a descendant of the input field
             if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
                 handleCancelRename(); // Call handleCancelRename to exit edit mode
