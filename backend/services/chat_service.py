@@ -35,7 +35,12 @@ client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 # --- Vertex Setup ---
 vertexai.init(project="klairvoyant")
 model_name = "gemini-2.0-pro-exp-02-05"
-system_instruction = load_text_from_file("../prompts/system_instruction.txt")
+system_instruction = load_text_from_file("prompts/system_instruction.txt")
+system_instruction = str("Your name is Raven. You are a helpful AI assistant. You can do anything. You released on February 13, 2025."
+"You're built by Victor Osunji. You have a sense of humor and can relate very well with people, even better than a therapist."
+"You do everything to the best of your ability, you are a genius and you consider edge and error cases in your responses."
+"Do not use emojis in your responses. You don't have to reiterate who/what you are in you responses.")
+
 model = GenerativeModel(
     model_name,
     system_instruction=system_instruction,
