@@ -51,15 +51,15 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
         print("data: ", data)
         event_type = evt['type']
         print("evt_type: ", event_type)
-        event_id = evt['id'] # Get the event ID for idempotency
+        event_id = evt['instance_id'] # Get the event ID for idempotency
         print("event_id: ", event_id)
 
     except WebhookVerificationError as e:
         print("WebhookVerificationError", e)
-        # raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
-    # except Exception as e:
-        # print("Exception: ", e)
-        # raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
+    except Exception as e:
+        print("Exception: ", e)
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Check if we've already processed this event (idempotency)
     try:
@@ -89,7 +89,7 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
 async def create_user(db, user_data: Dict):
     """Creates a new user in the database."""
     try:
-        print("creat user data:", user_data)
+        print("create user data:", user_data)
         # Extract relevant data from the user_data dictionary
         user_id = user_data['id']
         print("user_id: ", user_id)
