@@ -37,13 +37,20 @@ app.add_middleware(
 @app.post("/clerk-webhook")
 async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_db_pool)):
     """Handles Clerk webhooks."""
+    print("request: ", request)
     payload = await request.body()
+    print("payload: ", payload)
     headers = request.headers
+    print("header: ", headers)
     try:
         wh = Webhook(webhook_secret)
+        print("wb: ", wh)
         evt = wh.verify(payload, headers)  # Verify the webhook signature
+        print("evt: ", evt)
         data = evt['data']
+        print("data: ", data)
         event_type = evt['type']
+        print("evt_type: ", event_type)
         event_id = evt['id'] # Get the event ID for idempotency
 
     except WebhookVerificationError as e:
