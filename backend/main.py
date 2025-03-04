@@ -3,12 +3,11 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from svix.webhooks import Webhook, WebhookVerificationError
-from .routers import raven, klair
-from database import init_db, close_db
+from .routers import raven
+from database import init_db, close_db, get_db_pool
 from pymodels import *
 import os
 from dotenv import load_dotenv
-from database import get_db_pool
 import asyncpg
 import uvicorn
 
@@ -174,7 +173,6 @@ async def shutdown():
 
 # --- Include Routers ---
 app.include_router(raven.router)
-app.include_router(klair.router)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))  # Get PORT from env, default to 8080
