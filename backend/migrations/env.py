@@ -8,9 +8,8 @@ from alembic import context
 # --- ADDED  ---
 import os
 from dotenv import load_dotenv
-from backend.migrations.models import Base
+from models import Base
 # --- ADDED ---
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -49,7 +48,6 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    # url = config.get_main_option("sqlalchemy.url")
     url = get_url()
     context.configure(
         url=url,
@@ -69,10 +67,8 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = get_url() # Set the URL dynamically
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
