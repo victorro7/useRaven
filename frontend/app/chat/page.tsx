@@ -50,7 +50,9 @@ export default function Home() {
                 <h2 className="text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">
                    <TypewriterEffectSmooth className="text-white" words={words} />
                 </h2>
-                <BackgroundBeams />
+                <div className="hidden lg:block">
+                  <BackgroundBeams />
+                </div>
             </div>
         )}
     </div>
