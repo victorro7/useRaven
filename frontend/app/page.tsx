@@ -57,7 +57,9 @@ export default function LandingPage() {
               </button>
               </Link>
             </div>
-            <BackgroundBeams />
+            <div className="hidden lg:block">
+              <BackgroundBeams />
+            </div>
           </div>
         );
     }
