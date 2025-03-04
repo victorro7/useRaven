@@ -13,8 +13,8 @@ import os
 import vertexai
 from google.cloud import aiplatform, storage
 from vertexai.generative_models import GenerativeModel, Part, GenerationConfig, Tool
-from pymodels import ChatRequest  # Use relative import
-from database import get_db_pool
+from ..pymodels import ChatRequest
+from ..database import get_db_pool
 from fastapi import Depends
 import urllib.parse
 
