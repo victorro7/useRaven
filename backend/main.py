@@ -10,6 +10,7 @@ import os
 from dotenv import load_dotenv
 from database import get_db_pool
 import asyncpg
+import uvicorn
 
 load_dotenv()
 
@@ -174,3 +175,7 @@ async def shutdown():
 # --- Include Routers ---
 app.include_router(raven.router)
 app.include_router(klair.router)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))  # Get PORT from env, default to 8080
+    uvicorn.run(app, host="0.0.0.0", port=port)
