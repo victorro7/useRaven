@@ -63,21 +63,28 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
 
     # Check if we've already processed this event (idempotency)
     try:
-        existing_event = await db.fetchrow("SELECT * FROM processed_webhooks WHERE event_id = $1", event_id)
+        try:
+            print(f"Checking for existing event with ID: {event_id}")
+            existing_event = await db.fetchrow("SELECT * FROM processed_webhooks WHERE event_id = $1", event_id)
+            if existing_event:
+                return JSONResponse({"message": "Event already processed"}, status_code=200) # Or 204 No Content
+        except Exception as e:
+            print(f"Error in idempotency check: {e}") # Add this for debugging
+            raise HTTPException(status_code=500, detail=f"Error in idempotency check: {e}")
+
+        print("existing satement: ", existing_event)
         if existing_event:
             return JSONResponse({"message": "Event already processed"}, status_code=200) # Or 204 No Content
 
+        print("event_type choosing: ", event_type)
         # Process the event based on its type
         if event_type == "user.created":
             await create_user(db, data)
-        elif event_type == "user.updated":
-            await update_user(db, data)
-        elif event_type == "user.deleted":
-            await delete_user(db, data)
         else:
             print(f"Unhandled event type: {event_type}")
             return JSONResponse({"message": f"Unhandled event type: {event_type}"}, status_code=200)
 
+        print("after user functions")
         # Mark the event as processed
         await db.execute("INSERT INTO processed_webhooks (event_id) VALUES ($1)", event_id)
         return JSONResponse({"message": "Webhook processed successfully"}, status_code=200)
@@ -88,8 +95,8 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
 
 async def create_user(db, user_data: Dict):
     """Creates a new user in the database."""
+    print("create user data:", user_data)
     try:
-        print("create user data:", user_data)
         # Extract relevant data from the user_data dictionary
         user_id = user_data['id']
         print("user_id: ", user_id)
@@ -112,48 +119,6 @@ async def create_user(db, user_data: Dict):
     except Exception as e:
         print(f"Error creating user: {e}")
         raise  # Re-raise the exception to be caught by the main webhook handler
-
-async def update_user(db, user_data: Dict):
-    """Updates an existing user in the database."""
-    try:
-        user_id = user_data['id']
-        #  Update only the fields that are provided in the webhook
-        updates = {}
-        if 'email_addresses' in user_data and user_data['email_addresses']:
-            updates['email'] = user_data['email_addresses'][0]['email_address']
-        if 'first_name' in user_data:
-            updates['first_name'] = user_data['first_name']
-        if 'last_name' in user_data:
-            updates['last_name'] = user_data['last_name']
-        if 'profile_image_url' in user_data:
-            updates['profile_image_url'] = user_data['profile_image_url']
-
-        if updates:
-          set_clause = ', '.join([f"{key} = ${i+2}" for i, key in enumerate(updates.keys())])
-          values = [user_id] + list(updates.values())
-
-          query = f'''
-              UPDATE users
-              SET {set_clause}
-              WHERE id = $1
-          '''
-          await db.execute(query, *values) # Use *values to expand the list
-          print(f"User updated: {user_id}")
-
-    except Exception as e:
-        print(f"Error updating user: {e}")
-        raise
-
-async def delete_user(db, user_data: Dict):
-    """Deletes a user from the database."""
-    try:
-        user_id = user_data['id']
-        await db.execute("DELETE FROM users WHERE id = $1", user_id)
-        print(f"User deleted: {user_id}")
-        # Consider cascading deletes to related tables (chats, messages) if necessary
-    except Exception as e:
-        print(f"Error deleting user: {e}")
-        raise
 
 # --- Database Schema (Add the 'users' table and 'processed_webhooks' table) ---
 async def create_tables(db):
