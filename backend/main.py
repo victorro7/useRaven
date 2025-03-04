@@ -51,8 +51,9 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
         print("data: ", data)
         event_type = evt['type']
         print("evt_type: ", event_type)
-        event_id = evt['instance_id'] # Get the event ID for idempotency
+        event_id = headers.get('svix-id') # Get the event ID for idempotency
         print("event_id: ", event_id)
+
 
     except WebhookVerificationError as e:
         print("WebhookVerificationError", e)
