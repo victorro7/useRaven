@@ -35,7 +35,7 @@ client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 # --- Vertex Setup ---
 vertexai.init(project="klairvoyant")
 model_name = "gemini-2.0-pro-exp-02-05"
-system_instruction = load_text_from_file("./prompts/system_instruction.txt")
+system_instruction = load_text_from_file("../prompts/system_instruction.txt")
 model = GenerativeModel(
     model_name,
     system_instruction=system_instruction,
