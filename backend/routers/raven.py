@@ -26,23 +26,6 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)
 async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = Depends(get_current_user)):
     """Generates a presigned URL for uploading a file to GCS."""
     try:
-        # --- FILE SIZE CHECK (Backend) ---
-        if request_body.contentType.startswith("image/") :
-            max_file_size = 10 * 1024 * 1024 #10 mb
-        elif request_body.contentType.startswith("video/"):
-            max_file_size = 50 * 1024 * 1024 #50mb
-        elif request_body.contentType.startswith("audio/"):
-            max_file_size = 20 * 1024 * 1024 #20mb
-        else:
-            max_file_size = MAX_FILE_SIZE #default
-
-        # Get the content length from the request headers
-        content_length = int(request.headers.get("Content-Length", 0))
-
-        if content_length > max_file_size:
-            raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {max_file_size / (1024 * 1024)}MB")
-        # --- END FILE SIZE CHECK ---
-
         bucket_name = os.environ["GCS_BUCKET_NAME"]  # Get bucket name from environment variable
         bucket = storage_client.bucket(bucket_name)
 

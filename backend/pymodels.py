@@ -1,10 +1,32 @@
-# backend/models.py
-from pydantic import BaseModel, Field
-from typing import Optional, List
+# backend/pymodels.py
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, EmailStr, HttpUrl, Field
 from datetime import datetime
 import uuid
 
 # --- Pydantic Models ---
+
+class ClerkUser(BaseModel):
+    id: str
+    first_name: str | None = None
+    last_name: str | None = None
+    email_addresses: List[Dict[str, Any]] # List of dictionaries
+    primary_email_address_id: str | None = None
+    profile_image_url: HttpUrl | None = None
+    username: str | None = None
+    # Add other fields you need from the Clerk user object
+
+class ClerkWebhookEventData(BaseModel):
+    object: str  # e.g., "user"
+    type: str    # e.g., "user.created"
+    data: ClerkUser  # The actual user data
+
+class ClerkWebhookPayload(BaseModel):
+    data: Dict[str, Any]
+    object: str = Field(..., alias='object') # Use the 'object' field
+    type: str
+    id: str # important for idempotency
+
 class Message(BaseModel):
     role: str
     parts: list[str]
