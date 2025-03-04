@@ -52,11 +52,14 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
         event_type = evt['type']
         print("evt_type: ", event_type)
         event_id = evt['id'] # Get the event ID for idempotency
+        print("event_id: ", event_id)
 
     except WebhookVerificationError as e:
-        raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print("WebhookVerificationError", e)
+        # raise HTTPException(status_code=400, detail=f"Webhook verification failed: {e}")
+    # except Exception as e:
+        # print("Exception: ", e)
+        # raise HTTPException(status_code=400, detail=str(e))
 
     # Check if we've already processed this event (idempotency)
     try:
