@@ -20,7 +20,7 @@ router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
 credentials = service_account.Credentials.from_service_account_file(
-    'ravenklair-backend-sa-key.json')
+    '../ravenklair-backend-sa-key.json')
 storage_client = storage.Client(credentials=credentials)
 # --- Google Cloud Storage Setup ---
 
