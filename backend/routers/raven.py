@@ -27,7 +27,7 @@ router = APIRouter()
 # --- Google Cloud Storage Setup ---
 credentials = service_account.Credentials.from_service_account_file(
     'ravenklair-backend-sa-key.json')
-storage_client = storage.Client(credentials=credentials)
+storage_client = storage.Client()
 # --- Google Cloud Storage Setup ---
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)
