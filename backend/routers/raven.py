@@ -2,17 +2,22 @@
 from httpx import request
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest
-from database import get_db
-from auth import get_current_user
+from ..pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest
+from ..database import get_db
+from ..auth import get_current_user
 import asyncpg
-from services.chat_service import generate_stream, add_messages_to_db  # Import service functions
+from ..services.chat_service import generate_stream, add_messages_to_db  # Import service functions
 import uuid
 from typing import List
 from google.cloud import storage
 import os
 from uuid import uuid4
 from datetime import timedelta
+from google.auth import compute_engine
+import json
+
+from google.oauth2 import service_account
+
 router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
@@ -20,6 +25,24 @@ storage_client = storage.Client()
 # --- Google Cloud Storage Setup ---
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)
+
+import datetime
+import google.auth.impersonated_credentials
+import google.auth.transport.requests
+
+def get_impersonated_credentials():
+    scopes = ['https://www.googleapis.com/auth/cloud-platform']
+    credentials, project = google.auth.default(scopes=scopes)
+    if credentials.token is None:
+        credentials.refresh(google.auth.transport.requests.Request())
+    signing_credentials = google.auth.impersonated_credentials.Credentials(
+        source_credentials=credentials,
+        target_principal=credentials.service_account_email,
+        target_scopes=scopes,
+        lifetime=datetime.timedelta(seconds=3600),
+        delegates=[credentials.service_account_email]
+    )
+    return signing_credentials
 
 # --- Raven Chat Endpoints ---
 @router.post("/api/upload-url", response_model=PresignedUrlResponse)
@@ -32,16 +55,19 @@ async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = De
         # Create a unique filename.  Good practice to prefix with user ID.
         blob_name = f"uploads/{user_id}/{uuid4()}-{request_body.filename}"
         blob = bucket.blob(blob_name)
-
+        
+        credentials=get_impersonated_credentials()
         # Generate the presigned URL
         url = blob.generate_signed_url(
             version="v4",
+            credentials=credentials,
             expiration=timedelta(minutes=15),  # URL expires in 15 minutes
             method="PUT",  # Allow PUT requests (uploads)
             content_type=request_body.contentType,
         )
         download_url = blob.generate_signed_url(
             version="v4",
+            credentials=credentials,
             expiration=timedelta(days=7),  # URL expires in 7 days (adjust as needed)
             method="GET",  # Allow GET requests (downloads)
         )
