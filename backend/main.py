@@ -68,7 +68,7 @@ async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_d
             print(f"Checking for existing event with ID: {event_id}")
             existing_event = await db.fetchrow("SELECT * FROM processed_webhooks WHERE event_id = $1", event_id)
             if existing_event:
-                return JSONResponse({"message": "Event already processed"}, status_code=200) # Or 204 No Content
+                return JSONResponse({"message": "Event already processed"}, status_code=200)
         except Exception as e:
             print(f"Error in idempotency check: {e}") # Add this for debugging
             raise HTTPException(status_code=500, detail=f"Error in idempotency check: {e}")
