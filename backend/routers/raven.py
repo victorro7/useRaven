@@ -14,14 +14,20 @@ import os
 from uuid import uuid4
 from datetime import timedelta
 from google.auth import compute_engine
+import json
+
 from google.oauth2 import service_account
+
+json_account_info = json.loads("ravenklair-backend-sa-key.json")  # convert JSON to dictionary
+credentials = service_account.Credentials.from_service_account_info(
+    json_account_info)
 
 router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
 credentials = service_account.Credentials.from_service_account_file(
-    'backend/ravenklair-backend-sa-key.json')
-storage_client = storage.Client()
+    'ravenklair-backend-sa-key.json')
+storage_client = storage.Client(credentials=credentials)
 # --- Google Cloud Storage Setup ---
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)
