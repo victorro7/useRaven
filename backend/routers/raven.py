@@ -14,11 +14,13 @@ import os
 from uuid import uuid4
 from datetime import timedelta
 from google.auth import compute_engine
+from google.oauth2 import service_account
 
 router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
-credentials = compute_engine.Credentials()
+credentials = service_account.Credentials.from_service_account_file(
+    'ravenklair-backend-sa-key.json')
 storage_client = storage.Client(credentials=credentials)
 # --- Google Cloud Storage Setup ---
 
