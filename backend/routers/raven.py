@@ -18,10 +18,6 @@ import json
 
 from google.oauth2 import service_account
 
-json_account_info = json.loads("ravenklair-backend-sa-key.json")  # convert JSON to dictionary
-credentials = service_account.Credentials.from_service_account_info(
-    json_account_info)
-
 router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
