@@ -13,10 +13,13 @@ from google.cloud import storage
 import os
 from uuid import uuid4
 from datetime import timedelta
+from google.auth import compute_engine
+
 router = APIRouter()
 
 # --- Google Cloud Storage Setup ---
-storage_client = storage.Client()
+credentials = compute_engine.Credentials()
+storage_client = storage.Client(credentials=credentials)
 # --- Google Cloud Storage Setup ---
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB (same as frontend)

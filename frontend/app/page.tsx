@@ -51,7 +51,7 @@ export default function LandingPage() {
                 Join now
               </button>
               </Link>
-              <Link href="/">
+              <Link href="/sign-in">
               <button className="z-10 w-40 h-10 rounded-xl bg-white text-black border border-black  text-sm">
                 Sign In
               </button>
