@@ -2,5 +2,3 @@
 .env
 .env.local
 backend/klairvoyant-gcs-cred.json
-backend/ravenklair-db-sa-key.json
-backend/ravenklair-backend-sa-key.json
