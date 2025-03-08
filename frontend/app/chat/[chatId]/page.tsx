@@ -34,9 +34,11 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!isMessagesLoading && messages.length > 0 && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        requestAnimationFrame(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        });
     }
-  }, [messages, isMessagesLoading]);
+}, [messages, isMessagesLoading]);
 
   useEffect(() => {
     setSelectedChatId(chatId);
