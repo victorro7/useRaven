@@ -33,7 +33,9 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -156,6 +158,7 @@ export default function ChatPage() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

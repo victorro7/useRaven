@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "klairdev",
+  "private_key_id": "3c55df7c03e8e5ac445caedb435ddf4f349feb2c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC8TfJD86uc163s\nVrvfu5oAN+fjEPYm0GBluMszz6flctIuOiWhrojuEzulhOC74ovE1ehg8w9fclWq\n7FpJ/yVqr6upg81xqYYvKVQz5IKFj4Gv51lunWOJitTTUt/j33XCx+36Ex1mK6pm\nt5EjCNIVmrMq8jdncTa/yr6cZ1TG1VEZxUhzCFjXHBSw+++zRyah3hFcx9StI5SY\nntl9T3DAyWbOiHslInA9ZWHytuqGalx7NrdmqKYwRI3GLB2I5bd3OBJR6bSlBQNy\nHAjxihOJZ+GTRLsGJJ2lawTCMSkwGYlYih61jDBk4l4NFTNofvRGSlitIuJUDrjw\nlZsjCM7DAgMBAAECggEAHWk+m+lya6gY9Lnj/0Eh1RiQ90YeGZg2A5Krk7dCkz5u\nC1AEB678mSmCM/Xp/2lA3mjGB7p/CK/m0dsNC9NhCJBRS26YMewXVsS+75n93uw4\nBn2n2h9AEuq5whtcIo8zqU1+jdmFdStVzVRXmXVrvCRyXpSqyFUxBsodH82t5Ujb\nMLl2cJeOKd4HkOGA14cMgVBfldYV4HVLNJwh386S29l6KvPqmjvYhRnx4+oJY7X9\nSXSI/u6cTpCa8Uam3J0Kk3N/rP4Z7y4EGB6dVJCfE1Gj465+rDjJQj9mICbdmH5g\nJa/RO+LoNfNdNfJFHQQ0k9HupTYe077PQ3sdWjR9AQKBgQDmpABt1kmelNGx33An\nyk5bpB1RLwjq7MrRUirl24sU9zh8xET6pZJwkEPDg/xa2/Jy0BF7grHJKut7QATp\n5eA0teB0eTEHxOjSh+QdHYMFBBJ97tJMuFasdvR8SN9oJbQX68FTpbhPLbL+184a\nN8ONeA+dWuLWIY5WPYwlnYPRwwKBgQDRAke9kiU1pQKcXgjNIc7wXwNh4Cqm+rwz\nOUO5x0c4VZfqmbLXnVmVo07E8kE7sedEWpcvqFXNH4BoYUZDmUDtoxmS0mMYV4sn\nqYfaNXT4J9bITzwSj1v0P5tu9GpoOB5GgM4jjFZgTM7U7HA90Vev2VVVjwujumpm\n73M6UyI/AQKBgA/yGMF/Rjm7ij/k9ckaeI5na0t4mAI9+su8BZE8u4HokbQ2kZpO\npjA4GSdEUccqW7nKXtsOLyJ8YCl2RKCzLuwWAv2qf1RNLdeYY5ILv0oyfODOCSYa\nvItR8hdBpoh5yti4iPYyh+qZez2ZR/uSDWgTe+jiJrqtOT0HJlBXcoynAoGBAJyv\nIuzgZHikrSJf9CUjlSjpcXWsQQ1QpkmYQkdBNwjqUaqTcljlIsVk2aYXHgQMSB0b\n9H7LqRbO6MpXMf93Ig+D16YThio3ZqBjHO7eaEOoSgF8NMKNKhgenv08yZA7kaa0\n5NQNXqtuqRdB8JrHFv9C5A/x3n3tP9rO4wj0TZYBAoGBALIv9vIcP44OLq2WAM2X\nL9HL8Bs0CNkT+hacGigTWhPetVB9x8c1yqebZx/1XUZDuAdy0vZVhNuCv2fktAtP\nG0SN6PQ7vaZq3QEIPfLUC9IRaYVZ2MF5exSR90xKD8brNiemv9hhLJbx82yiD64t\nPJnnCsFKle+YQw5SYe0lYOxz\n-----END PRIVATE KEY-----\n",
+  "client_email": "klair-backend-sa@klairdev.iam.gserviceaccount.com",
+  "client_id": "113339618985385074023",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/klair-backend-sa%40klairdev.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
