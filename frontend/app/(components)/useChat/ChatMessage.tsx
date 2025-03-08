@@ -6,7 +6,6 @@ import Markdown from 'markdown-to-jsx';
 import LogoIcon from '../icons/LogoIcon';
 import { TextGenerateEffect } from './useTypewriter';
 
-
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system' | 'data';
   content: string;
@@ -20,13 +19,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
   if (role === 'system' || role === 'data') {
     return null;
   }
+
   const messageClass = isUser
     ? 'bg-[#5b5bd1cb] text-white self-end  px-3 py-2 rounded-xl geist-mono'
     : 'text-white self-start';
-
-  // console.log(content);
-  console.log(isTyping);
-  // <TextGenerateEffect filter={false} words={content} />;
 
   return (
       <div
@@ -62,7 +58,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
                   )}
                   {/* Use TypewriterEffectSmooth for assistant messages */}
                   {isTyping && !isUser ? (
-                    <TextGenerateEffect filter={false} words={content} duration={0.5} htmlEffect={true}/>
+                    <TextGenerateEffect filter={false} words={content} duration={0.5}/>
                   ) : (
                     <Markdown
                       options={{

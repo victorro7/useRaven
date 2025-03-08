@@ -18,7 +18,6 @@ export const useChatMessages = () => {
     const { getToken } = useAuth();
     const { uploadMedia } = useMediaUpload();
 
-
     useEffect(() => {
         isMounted.current = true;
         return () => {
@@ -165,7 +164,6 @@ export const useChatMessages = () => {
                     }
 
                     if (jsonChunk.response && isMounted.current) {
-                      console.log(jsonChunk.response);
                     setMessages((prevMessages) => {
                         const existingAssistantMessageIndex = prevMessages.findIndex(
                         (msg) => msg.id === newAssistantMessageId
@@ -185,6 +183,7 @@ export const useChatMessages = () => {
                             ],
                         };
                         // Inside the setMessages callback:
+                        // updatedMessages[existingAssistantMessageIndex].parts[0].text += jsonChunk.response; // Append!
                         return updatedMessages;
                         } else {
                         const newAssistantMessage: FormattedChatMessage = {

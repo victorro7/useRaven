@@ -21,7 +21,6 @@ export default function ChatPage() {
   const [hasInteracted] = useState(false);
   const { user } = useUser();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const { input, setInput, isLoading, isGenerating, setIsGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
 
@@ -45,13 +44,13 @@ export default function ChatPage() {
 
   useEffect(() => {
     setSelectedChatId(chatId);
-  }, [chatId, setSelectedChatId]);
+  }, [chatId]);
 
   useEffect(() => {
     if (selectedChatId) {
       loadChatMessages(selectedChatId);
     }
-  }, [selectedChatId, loadChatMessages]);
+  }, [selectedChatId]);
 
   useEffect(() => {
     setShowTitle(!isLoading && (messages.length === 0));
@@ -119,7 +118,8 @@ export default function ChatPage() {
                 .filter((part) => part.type === 'text')
                 .map((part) => part.text)
                 .join('');
-            const isUser = message.role === 'user';
+
+                const isUser = message.role === 'user';
 
             return (
               <div key={message.id} className="mb-4"> {/* Wrapper div */}

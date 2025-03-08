@@ -75,7 +75,7 @@ export const useApiRequest = () => {
             setAbortController(null);
           }
         }
-    }, [getToken]);
+    }, []);
 
     return { makeRequest, loading, error, abortController };
 };
