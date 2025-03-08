@@ -17,5 +17,6 @@ export const useChatState = () => {
       setSelectedChatId(chatIdFromParams || null);
   }, [params.chatId, pathname]);
 
-  return { input, setInput, isLoading, setIsLoading, isGenerating, setIsGenerating, error, setError, selectedChatId, setSelectedChatId };
+  return { input, setInput, isLoading, setIsLoading, isGenerating, setIsGenerating, error, setError, selectedChatId, setSelectedChatId
+   };
 };
