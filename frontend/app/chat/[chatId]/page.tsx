@@ -1,4 +1,4 @@
-// app/raven/chat/[chatId]/page.tsx (Revised for Grouped Layout)
+// app/raven/chat/[chatId]/page.tsx
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
@@ -33,7 +33,9 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -156,6 +158,7 @@ export default function ChatPage() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
