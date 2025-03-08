@@ -1,4 +1,4 @@
 .aider*
 .env
 .env.local
-backend/klairvoyant-gcs-cred.json
+ravenklair-backend-sa-key.json
