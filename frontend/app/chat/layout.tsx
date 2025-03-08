@@ -19,8 +19,8 @@ export default function RavenLayout({ children }: LayoutProps) {
     const params = useParams();
     const chatId = params.chatId as string;
     const { isLoaded, isSignedIn } = useUser();
-    const [isMobile, setIsMobile] = useState(false); // Add isMobile state
-    const { selectedChatId, setSelectedChatId } = useChatState();
+    const [isMobile, setIsMobile] = useState(false);
+    const { selectedChatId } = useChatState();
     const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
     const {loadChatMessages} = useChatMessages();
 
@@ -29,23 +29,12 @@ export default function RavenLayout({ children }: LayoutProps) {
         const handleInitialLoad = async () => {
         if (isSignedIn) {
             await fetchChats(); // Always fetch chats first
-            if (chatId) {
-                // If there's a chatId in the URL, load that chat
-                setSelectedChatId(chatId);
-                await loadChatMessages(chatId);
-
-            } else if (chats.length === 0) {
-            // If there's no chatId AND no existing chats, create a new chat
-                // console.log(chats.length)
-                // await createNewChat();
-            }
-            // If there's no chatId and there ARE existing chats, do nothing (display the chat list)
         }
         };
 
         handleInitialLoad();
         // All necessary dependencies are included:
-    }, [isSignedIn, chatId, setSelectedChatId, fetchChats, createNewChat, chats.length, loadChatMessages]);
+    }, [isSignedIn, chatId]);
 
 
     useEffect(() => {
@@ -101,6 +90,5 @@ export default function RavenLayout({ children }: LayoutProps) {
                 </main>
             </div>
         </div>
-        
     );
 }

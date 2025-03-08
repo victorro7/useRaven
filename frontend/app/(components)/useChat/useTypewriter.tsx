@@ -8,13 +8,11 @@ export const TextGenerateEffect = ({
   className,
   filter = true,
   duration = 0.5,
-  htmlEffect = false,
 }: {
   words: string;
   className?: string;
   filter?: boolean;
   duration?: number;
-  htmlEffect?: boolean;
 }) => {
   const [scope, animate] = useAnimate();
   const wordsArray = words.split(" ");
@@ -31,36 +29,23 @@ export const TextGenerateEffect = ({
         delay: stagger(0.0005),
       }
     );
-  }, [scope.current, wordsArray, filter, duration]);
+  }, [scope.current, wordsArray]);
 
   const renderWords = () => {
     return (
       <motion.div ref={scope}>
         {wordsArray.map((word, idx) => {
-          if (htmlEffect) {
-            return (
-              <motion.span
-                key={word + idx}
-                className="text-white opacity-0"
-                style={{
-                  filter: filter ? "blur(10px)" : "none",
-                }}
-                dangerouslySetInnerHTML={{ __html: word + " " }}
-              />
-            );
-          } else {
-            return (
-              <motion.span
-                key={word + idx}
-                className="text-white opacity-0"
-                style={{
-                  filter: filter ? "blur(10px)" : "none",
-                }}
-              >
-                {word}{" "}
-              </motion.span>
-            );
-          }
+          return (
+            <motion.span
+              key={word + idx}
+              className="text-white opacity-0"
+              style={{
+                filter: filter ? "blur(10px)" : "none",
+              }}
+            >
+              {word}{" "}
+            </motion.span>
+          );
         })}
       </motion.div>
     );
