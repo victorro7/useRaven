@@ -105,7 +105,8 @@ export const useChatMessages = () => {
             }
 
             // Optimistically add the user message *and* a placeholder for the assistant message
-            setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: '' }], id: newAssistantMessageId }]);
+            setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: '',  type: 'text'}], id: newAssistantMessageId }]);
+            // Set typingMessageId to the ID of the new assistant message
 
           // 3. Construct request body *after* handling media and text
           const requestBody = {
@@ -157,7 +158,6 @@ export const useChatMessages = () => {
 
                 for (const line of lines) {
                 if (!line) continue;
-
                 try {
                     const jsonChunk = JSON.parse(line);
                     if (jsonChunk.error) {
@@ -165,6 +165,7 @@ export const useChatMessages = () => {
                     }
 
                     if (jsonChunk.response && isMounted.current) {
+                      console.log(jsonChunk.response);
                     setMessages((prevMessages) => {
                         const existingAssistantMessageIndex = prevMessages.findIndex(
                         (msg) => msg.id === newAssistantMessageId
@@ -179,15 +180,16 @@ export const useChatMessages = () => {
                                 text:
                                 updatedMessages[existingAssistantMessageIndex].parts[0].text +
                                 jsonChunk.response,
-                                type: 'text'
+                                type: 'text',
                             },
                             ],
                         };
+                        // Inside the setMessages callback:
                         return updatedMessages;
                         } else {
                         const newAssistantMessage: FormattedChatMessage = {
                             role: 'assistant',
-                            parts: [{ text: jsonChunk.response }],
+                            parts: [{ text: jsonChunk.response, type: "text" }],
                             id: newAssistantMessageId,
                         };
                         return [...prevMessages, newAssistantMessage];

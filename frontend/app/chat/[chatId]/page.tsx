@@ -22,14 +22,17 @@ export default function ChatPage() {
   const { user } = useUser();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
+  const { input, setInput, isLoading, isGenerating, setIsGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
+
 
   const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
     event.preventDefault();
     if (!input.trim() && mediaFiles.length === 0) return;
     setInput('');
+    setIsGenerating(true);
     await submitMessage(input, mediaFiles);
+    setIsGenerating(false);
   };
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export default function ChatPage() {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         });
     }
-}, [messages, isMessagesLoading]);
+  }, [messages, isMessagesLoading]);
 
   useEffect(() => {
     setSelectedChatId(chatId);
@@ -117,6 +120,7 @@ export default function ChatPage() {
                 .map((part) => part.text)
                 .join('');
             const isUser = message.role === 'user';
+
             return (
               <div key={message.id} className="mb-4"> {/* Wrapper div */}
                 {/* Media Previews (Above Text) */}
@@ -155,6 +159,7 @@ export default function ChatPage() {
                       key={message.id + '_text'}
                       role={message.role}
                       content={textContent}
+                      isTyping={isGenerating && message.role === 'assistant' && message.id === messages[messages.length - 1].id}
                     />
                   )}
               </div>
