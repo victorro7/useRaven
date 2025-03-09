@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Markdown from 'markdown-to-jsx';
 import LogoIcon from '../icons/LogoIcon';
 import { TextGenerateEffect } from './useTypewriter';
+import { parseContent } from '@/lib/parseContent';
 
 interface ChatMessageProps {
   role: 'user' | 'assistant' | 'system' | 'data';
@@ -23,6 +24,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
   const messageClass = isUser
     ? 'bg-[#5b5bd1cb] text-white self-end  px-3 py-2 rounded-xl geist-mono'
     : 'text-white self-start';
+
+  const parsedContent = parseContent(content);
 
   return (
       <div
@@ -57,24 +60,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
                   </div>
                   )}
                   {/* Use TypewriterEffectSmooth for assistant messages */}
-                  {isTyping && !isUser ? (
-                    <TextGenerateEffect filter={false} words={content} duration={0.5}/>
+                  {!isUser ? (
+                    <TextGenerateEffect filter={false}  parsedContent={parsedContent} duration={0.5}/>
                   ) : (
-                    <Markdown
-                      options={{
-                        overrides: {
-                          h1: { props: { className: 'text-2xl font-bold mb-2 whitespace-pre-wrap' } },
-                          h2: { props: { className: 'text-xl font-semibold mb-2 whitespace-pre-wrap' } },
-                          h3: { props: { className: 'text-lg font-medium mb-2' } },
-                          p: { props: { className: 'mb-2 whitespace-pre-wrap' } },
-                          li: { props: { className: 'mb-1' } },
-                          pre: { props: { className: 'mb-5 bg-gray-800 rounded-md p-2 overflow-x-auto text-sm whitespace-pre-wrap hide-scrollbar', style: { wordBreak: 'break-all' } } },
-                          code: { props: { className: 'mb-2 bg-gray-800 text-green-400 rounded px-1 py-0.5 font-mono text-sm', style: { wordBreak: 'break-all' } } },
-                        },
-                      }}
-                    >
-                      {content}
-                    </Markdown>
+                     <div className='mb-2 whitespace-pre-wrap'>{content}</div>
                   )}
 
               </div>
