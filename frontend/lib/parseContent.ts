@@ -4,7 +4,7 @@ const escapeHtml = (unsafe: string | undefined) => {
         return '';
     }
     return unsafe
-        .replace(/&/g, "&amp;")
+        .replace(/&/g, "&")
         .replace(/</g, "<")
         .replace(/>/g, ">")
         .replace(/"/g, '"')
@@ -41,7 +41,6 @@ export const parseContent = (text: string): ParsedContentPart[] => {
         if (match) {
             console.log(match[1]);
             const beforeCode = remainingText.substring(0, match.index);
-            const language = match[1] || undefined;
             const codeContent = match[2];
             const codeBlockLength = match[0].length;
 
@@ -50,7 +49,7 @@ export const parseContent = (text: string): ParsedContentPart[] => {
                 result.push(...nonCodeParts);
             }
 
-            result.push({ type: 'code', content: codeContent, language }); // No escaping here
+            result.push({ type: 'code', content: codeContent, language: match[1] }); // No escaping here
 
             remainingText = remainingText.substring(match.index + codeBlockLength);
         } else {
@@ -66,11 +65,11 @@ export const parseContent = (text: string): ParsedContentPart[] => {
 const processNonCodeText = (text: string): ParsedContentPart[] => {
     const parts: ParsedContentPart[] = [];
     const lines = text.split('\n');
-  
+
     lines.forEach((line) => {
-      const tempLine = line;
+      let tempLine = line;
       let match;
-  
+
       if ((match = headingRegex.exec(tempLine))) {
         const level = match[1].length;
         const content = match[2];
@@ -84,8 +83,9 @@ const processNonCodeText = (text: string): ParsedContentPart[] => {
         else if (level === 6) headingType = 'h6';
 
         parts.push({ type: headingType, content: escapeHtml(content) });
+        tempLine = '';
       }
-  
+
       if (tempLine) {
         let temp = tempLine;
         while ((match = boldRegex.exec(temp))) {

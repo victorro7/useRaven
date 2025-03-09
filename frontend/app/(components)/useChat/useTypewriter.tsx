@@ -96,15 +96,14 @@ export const TextGenerateEffect = ({
           if (item.type === "code") {
             return (
               <CodeBlock
-              key={`${item.type}-${idx}`}
-                language="python"
+                key={`${item.type}-${idx}`}
+                language={String(item.language)}
                 filename={item.type}
                 code={item.content}
               />
             );
           }
 
-          // Handle other types (strong, h1, etc.)
           return (
             <Component
               key={`${item.type}-${idx}`}
