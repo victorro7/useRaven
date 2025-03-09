@@ -107,7 +107,7 @@ export default function ChatPage() {
 
       <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
         <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle ? 'hidden' : ''}`}>
-        {messages.map((message) => {
+        {messages.map((message, index) => {
             const mediaParts = message.parts.filter((part) => part.type !== 'text' && part.type !== undefined);
             const textContent = message.parts
               .filter((part) => part.type === 'text')
@@ -119,7 +119,8 @@ export default function ChatPage() {
                 .map((part) => part.text)
                 .join('');
 
-                const isUser = message.role === 'user';
+              const isUser = message.role === 'user';
+              const isLastAssistantMessage = message.role === 'assistant' && index === messages.length - 1;
 
             return (
               <div key={message.id} className="mb-4"> {/* Wrapper div */}
@@ -159,7 +160,7 @@ export default function ChatPage() {
                       key={message.id + '_text'}
                       role={message.role}
                       content={textContent}
-                      isTyping={isGenerating && message.role === 'assistant' && message.id === messages[messages.length - 1].id}
+                      isTyping={isGenerating && isLastAssistantMessage}
                     />
                   )}
               </div>
@@ -169,7 +170,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {isGenerating && <p className="text-gray-400">Generating...</p>}
+      {isGenerating && <p className="text-gray-400">  <Spinner size="lg" color="white" /> Thinking...</p>}
 
       <div className="p-4 w-full bg-[#09090b]">
         {(showSuggestions && showTitle) && (
