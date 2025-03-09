@@ -38,7 +38,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
               <LogoIcon />  {/*  Render Logo for assistant messages */}
               </div>
           )}
-          <div className={`flex flex-col  ${ isUser ? 'items-end' : 'items-start'}`}>
+          <div className={`flex flex-col w-full overflow-x-hidden  ${ isUser ? 'items-end' : 'items-start'}`}>
             <div className={`p-2  max-w-prose ${messageClass} overflow-x-hidden mt-2`} style={{ wordBreak: 'break-word', overflowWrap: 'break-word', scrollbarGutter: 'stable'}}>
                   {/* WebKit-specific scrollbar hiding */}
                   <style jsx>{`
@@ -59,12 +59,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
                   </div>
                   )}
                   {/* Use TypewriterEffectSmooth for assistant messages */}
-                  {!isUser ? (
-                    <TextGenerateEffect filter={false}  parsedContent={parsedContent} duration={0.5}/>
-                  ) : (
-                     <div className='mb-2 whitespace-pre-wrap'>{content}</div>
-                  )}
-
+                  <TextGenerateEffect filter={false}  parsedContent={parsedContent} />
               </div>
           </div>
       </div>
