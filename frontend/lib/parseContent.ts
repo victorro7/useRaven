@@ -1,3 +1,7 @@
+// lib/parseContent.ts
+
+import { m } from "framer-motion";
+
 const escapeHtml = (unsafe: string | undefined) => {
     if (typeof unsafe !== 'string') {
         return '';
@@ -13,7 +17,7 @@ const headingRegex = /^(#+)\s+(.*)$/gm;
 const boldRegex = /\*\*(.*?)\*\*/g;
 const unorderedListRegex = /^-\s+(.*)$/gm;
 const orderedListRegex = /^\d+\.\s+(.*)$/gm;
-const blockCodeRegex = /^```([a-zA-Z]+)?\n([\s\S]*?)```$/m; // Defined once here
+const blockCodeRegex = /^```(js|javascript|python)?\n([\s\S]*?)```$/m;
 
 export type ParsedContentPart =
     | { type: 'text'; content: string }
@@ -24,7 +28,7 @@ export type ParsedContentPart =
     | { type: 'h4'; content: string }
     | { type: 'h5'; content: string }
     | { type: 'h6'; content: string }
-    | { type: 'li'; content: string; listType: 'ul' | 'ol' }
+    | { type: 'li'; content: string }
     | { type: 'ul'; items: ParsedContentPart[] }
     | { type: 'ol'; items: ParsedContentPart[] }
     | { type: 'code'; content: string; language?: string };
@@ -37,6 +41,7 @@ export const parseContent = (text: string): ParsedContentPart[] => {
         const match = blockCodeRegex.exec(remainingText);
 
         if (match) {
+            console.log(match[1]);
             const beforeCode = remainingText.substring(0, match.index);
             const language = match[1] || undefined;
             const codeContent = match[2];
@@ -47,10 +52,9 @@ export const parseContent = (text: string): ParsedContentPart[] => {
                 result.push(...nonCodeParts);
             }
 
-            result.push({ type: 'code', content: codeContent, language });
+            result.push({ type: 'code', content: codeContent, language }); // No escaping here
 
             remainingText = remainingText.substring(match.index + codeBlockLength);
-            blockCodeRegex.lastIndex = 0; // Reset lastIndex after each match
         } else {
             const nonCodeParts = processNonCodeText(remainingText);
             result.push(...nonCodeParts);
@@ -85,11 +89,11 @@ const processNonCodeText = (text: string): ParsedContentPart[] => {
             tempLine = '';
         } else if ((match = unorderedListRegex.exec(tempLine))) {
             const content = match[1];
-            parts.push({ type: 'li', content: escapeHtml(content), listType: 'ul' });
+            parts.push({ type: 'li', content: escapeHtml(content) });
             tempLine = '';
         } else if ((match = orderedListRegex.exec(tempLine))) {
             const content = match[1];
-            parts.push({ type: 'li', content: escapeHtml(content), listType: 'ol' });
+            parts.push({ type: 'li', content: escapeHtml(content) });
             tempLine = '';
         }
 
@@ -119,8 +123,9 @@ const groupListItems = (parts: ParsedContentPart[]): ParsedContentPart[] => {
 
     parts.forEach((item) => {
         if (item.type === 'li') {
-            if (!currentList || currentList.type !== item.listType) {
-                currentList = { type: item.listType, items: [] };
+            const listType = unorderedListRegex.test(item.content) ? 'ul' : 'ol';
+            if (!currentList || currentList.type !== listType) {
+                currentList = { type: listType, items: [] };
                 groupedResult.push(currentList);
             }
             currentList.items.push(item);
