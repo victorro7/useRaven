@@ -1,7 +1,4 @@
 // lib/parseContent.ts
-
-import { m } from "framer-motion";
-
 const escapeHtml = (unsafe: string | undefined) => {
     if (typeof unsafe !== 'string') {
         return '';
@@ -17,7 +14,7 @@ const escapeHtml = (unsafe: string | undefined) => {
 const headingRegex = /^(#+)\s+(.*)$/gm;
 const boldRegex = /\*\*(.*?)\*\*/g;
 const unorderedListRegex = /^-\s+(.*)$/gm;
-const orderedListRegex = /^\d+\.\s+(.*)$/gm;
+// const orderedListRegex = /^\d+\.\s+(.*)$/gm;
 const blockCodeRegex = /^```([a-zA-Z0-9+#-]+)?\n([\s\S]*?)```$/m;
 
 export type ParsedContentPart =
@@ -69,10 +66,9 @@ export const parseContent = (text: string): ParsedContentPart[] => {
 const processNonCodeText = (text: string): ParsedContentPart[] => {
     const parts: ParsedContentPart[] = [];
     const lines = text.split('\n');
-    let insideList = false; // Add this flag
   
     lines.forEach((line) => {
-      let tempLine = line;
+      const tempLine = line;
       let match;
   
       if ((match = headingRegex.exec(tempLine))) {
@@ -88,17 +84,7 @@ const processNonCodeText = (text: string): ParsedContentPart[] => {
         else if (level === 6) headingType = 'h6';
 
         parts.push({ type: headingType, content: escapeHtml(content) });
-        insideList = false; // Reset the flag
       }
-    //   else if ((match = unorderedListRegex.exec(tempLine))) {
-    //     const content = match[1];
-    //     parts.push({ type: 'li', content: escapeHtml(content) });
-    //     insideList = true; // Set the flag
-    //   } else if ((match = orderedListRegex.exec(tempLine))) {
-    //     const content = match[1];
-    //     parts.push({ type: 'li', content: escapeHtml(content) });
-    //     insideList = true; // Set the flag
-    //   }
   
       if (tempLine) {
         let temp = tempLine;

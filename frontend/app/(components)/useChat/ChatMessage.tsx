@@ -2,7 +2,6 @@
 "use client";
 import React from 'react';
 import Image from 'next/image';
-import Markdown from 'markdown-to-jsx';
 import LogoIcon from '../icons/LogoIcon';
 import { TextGenerateEffect } from './useTypewriter';
 import { parseContent } from '@/lib/parseContent';
@@ -15,7 +14,7 @@ interface ChatMessageProps {
   isTyping?: boolean;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, mediaType, isTyping = false }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, mediaType}) => {
   const isUser = role === 'user';
   if (role === 'system' || role === 'data') {
     return null;
