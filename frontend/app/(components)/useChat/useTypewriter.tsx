@@ -1,3 +1,4 @@
+ /* eslint-disable @typescript-eslint/no-explicit-any */
 // app/(components)/useChat/TextGenerateEffect.tsx (Updated)
 "use client";
 import { useEffect } from "react";
@@ -95,6 +96,7 @@ export const TextGenerateEffect = ({
           if (item.type === "code") {
             return (
               <CodeBlock
+              key={`${item.type}-${idx}`}
                 language="python"
                 filename={item.type}
                 code={item.content}
