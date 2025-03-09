@@ -8,8 +8,9 @@ const escapeHtml = (unsafe: string | undefined) => {
     }
     return unsafe
         .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
+        .replace(/"/g, '"')
         .replace(/'/g, "'");
 };
 
@@ -17,7 +18,7 @@ const headingRegex = /^(#+)\s+(.*)$/gm;
 const boldRegex = /\*\*(.*?)\*\*/g;
 const unorderedListRegex = /^-\s+(.*)$/gm;
 const orderedListRegex = /^\d+\.\s+(.*)$/gm;
-const blockCodeRegex = /^```(js|javascript|python)?\n([\s\S]*?)```$/m;
+const blockCodeRegex = /^```([a-zA-Z0-9+#-]+)?\n([\s\S]*?)```$/m;
 
 export type ParsedContentPart =
     | { type: 'text'; content: string }
@@ -68,54 +69,56 @@ export const parseContent = (text: string): ParsedContentPart[] => {
 const processNonCodeText = (text: string): ParsedContentPart[] => {
     const parts: ParsedContentPart[] = [];
     const lines = text.split('\n');
-
+    let insideList = false; // Add this flag
+  
     lines.forEach((line) => {
-        let tempLine = line;
-        let match;
+      let tempLine = line;
+      let match;
+  
+      if ((match = headingRegex.exec(tempLine))) {
+        const level = match[1].length;
+        const content = match[2];
 
-        if ((match = headingRegex.exec(tempLine))) {
-            const level = match[1].length;
-            const content = match[2];
+        let headingType: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' = 'h1';
+        if (level === 1) headingType = 'h1';
+        else if (level === 2) headingType = 'h2';
+        else if (level === 3) headingType = 'h3';
+        else if (level === 4) headingType = 'h4';
+        else if (level === 5) headingType = 'h5';
+        else if (level === 6) headingType = 'h6';
 
-            let headingType: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' = 'h1';
-            if (level === 1) headingType = 'h1';
-            else if (level === 2) headingType = 'h2';
-            else if (level === 3) headingType = 'h3';
-            else if (level === 4) headingType = 'h4';
-            else if (level === 5) headingType = 'h5';
-            else if (level === 6) headingType = 'h6';
-
-            parts.push({ type: headingType, content: escapeHtml(content) });
-            tempLine = '';
-        } else if ((match = unorderedListRegex.exec(tempLine))) {
-            const content = match[1];
-            parts.push({ type: 'li', content: escapeHtml(content) });
-            tempLine = '';
-        } else if ((match = orderedListRegex.exec(tempLine))) {
-            const content = match[1];
-            parts.push({ type: 'li', content: escapeHtml(content) });
-            tempLine = '';
+        parts.push({ type: headingType, content: escapeHtml(content) });
+        insideList = false; // Reset the flag
+      }
+    //   else if ((match = unorderedListRegex.exec(tempLine))) {
+    //     const content = match[1];
+    //     parts.push({ type: 'li', content: escapeHtml(content) });
+    //     insideList = true; // Set the flag
+    //   } else if ((match = orderedListRegex.exec(tempLine))) {
+    //     const content = match[1];
+    //     parts.push({ type: 'li', content: escapeHtml(content) });
+    //     insideList = true; // Set the flag
+    //   }
+  
+      if (tempLine) {
+        let temp = tempLine;
+        while ((match = boldRegex.exec(temp))) {
+          const before = temp.substring(0, match.index);
+          const bold = match[1];
+          const after = temp.substring(match.index + match[0].length);
+  
+          if (before) parts.push({ type: 'text', content: escapeHtml(before) });
+          parts.push({ type: 'strong', content: escapeHtml(bold) });
+          temp = after;
         }
-
-        if (tempLine) {
-            let temp = tempLine;
-            while ((match = boldRegex.exec(temp))) {
-                const before = temp.substring(0, match.index);
-                const bold = match[1];
-                const after = temp.substring(match.index + match[0].length);
-
-                if (before) parts.push({ type: 'text', content: escapeHtml(before) });
-                parts.push({ type: 'strong', content: escapeHtml(bold) });
-                temp = after;
-            }
-            if (temp) parts.push({ type: 'text', content: escapeHtml(temp) });
-        }
-        parts.push({ type: 'text', content: '\n' }); //Keep the new lines.
+        if (temp) parts.push({ type: 'text', content: escapeHtml(temp) });
+      }
+      parts.push({ type: 'text', content: '\n' }); //Keep the new lines.
     });
-
+  
     const groupedResult = groupListItems(parts);
     return groupedResult;
-};
+  };
 
 const groupListItems = (parts: ParsedContentPart[]): ParsedContentPart[] => {
     const groupedResult: ParsedContentPart[] = [];
