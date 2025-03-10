@@ -51,11 +51,10 @@ async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = De
     try:
         bucket_name = os.environ["GCS_BUCKET_NAME"]  # Get bucket name from environment variable
         bucket = storage_client.bucket(bucket_name)
-
         # Create a unique filename.  Good practice to prefix with user ID.
         blob_name = f"uploads/{user_id}/{uuid4()}-{request_body.filename}"
         blob = bucket.blob(blob_name)
-        
+
         credentials=get_impersonated_credentials()
         # Generate the presigned URL
         url = blob.generate_signed_url(
