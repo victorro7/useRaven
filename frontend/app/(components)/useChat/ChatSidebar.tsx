@@ -94,11 +94,10 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
                     href={`/chat/${chat.chatId}`}
                     className={cn(
                       "flex items-center gap-2 p-2 rounded-md w-full",  // Apply to the Link
-                      // selectedChatId === chat.chatId ? "bg-gray-700" : "bg-gray-700 transition"
+                      selectedChatId === chat.chatId ? "bg-gray-200 pl-[0.25rem]" : "hover:bg-gray-200 transition"
                     )}
                 >
                     <IconMessage2 className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
-
                     {editingChatId === chat.chatId ? (
                       <input
                         ref={inputRef}

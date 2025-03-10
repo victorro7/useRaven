@@ -10,9 +10,10 @@ interface ChatInputProps {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: (e: React.FormEvent, files: File[]) => void;
   messages: FormattedChatMessage[];
+  disabled?: boolean;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
+const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, disabled}) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]); // Store all files
   const [previewUrls, setPreviewUrls] = useState<string[]>([]); // Store preview URLs (images) or placeholders
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -186,6 +187,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
                 onChange={handleFileChange}
                 className="hidden"
                 multiple
+                disabled={disabled}
               />
               {/* video/*,audio/*,application/pdf,.heic,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv */}
               <div className='self-start'><UploadIcon /></div>
@@ -201,6 +203,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit}) => {
                 wordWrap: 'break-word',
                 whiteSpace: 'pre-wrap',
               }}
+              disabled={disabled}
             />
             <button type="submit" className="w-6 h-6 text-gray-500 hover:text-[#5b5bd1cb] mr-3">
               <SendIcon />
