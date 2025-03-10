@@ -23,8 +23,6 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { input, setInput, isLoading, isGenerating, setIsGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
-  
-
 
   const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
     event.preventDefault();
@@ -108,7 +106,7 @@ export default function ChatPage() {
 
       <div className="w-full sm:max-w-3xl mx-auto flex-grow relative">
         <div className={`flex flex-col absolute top-0 left-0 right-1 bottom-[1rem] overflow-y-auto ${showTitle ? 'hidden' : ''}`}>
-        {messages.map((message, index) => {
+        {messages.map((message) => {
             const mediaParts = message.parts.filter((part) => part.type !== 'text' && part.type !== undefined);
             const textContent = message.parts
               .filter((part) => part.type === 'text')
@@ -121,7 +119,6 @@ export default function ChatPage() {
                 .join('');
 
               const isUser = message.role === 'user';
-              const isLastAssistantMessage = message.role === 'assistant' && index === messages.length - 1;
 
             return (
               <div key={message.id} className="mb-4"> {/* Wrapper div */}
@@ -161,7 +158,6 @@ export default function ChatPage() {
                       key={message.id + '_text'}
                       role={message.role}
                       content={textContent}
-                      isTyping={isGenerating && isLastAssistantMessage}
                     />
                   )}
               </div>
