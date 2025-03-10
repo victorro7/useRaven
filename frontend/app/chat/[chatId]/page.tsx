@@ -1,4 +1,4 @@
-// app/raven/chat/[chatId]/page.tsx (Revised for Grouped Layout)
+// app/raven/chat/[chatId]/page.tsx
 "use client"
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
@@ -12,6 +12,7 @@ import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
 import { useChatState } from '@/app/(components)/useChat/useChatState';
 import Image from 'next/image';
 import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa';
+import TypingIndicator from '@/app/(components)/useChat/TypingIndicator';
 
 export default function ChatPage() {
   const params = useParams();
@@ -21,30 +22,35 @@ export default function ChatPage() {
   const [hasInteracted] = useState(false);
   const { user } = useUser();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const { input, setInput, isLoading, isGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
+  const { input, setInput, isLoading, isGenerating, setIsGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
 
   const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
     event.preventDefault();
     if (!input.trim() && mediaFiles.length === 0) return;
     setInput('');
+    setIsGenerating(true);
     await submitMessage(input, mediaFiles);
+    setIsGenerating(false);
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!isMessagesLoading && messages.length > 0 && messagesEndRef.current) {
+        requestAnimationFrame(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+  }, [messages, isMessagesLoading]);
 
   useEffect(() => {
     setSelectedChatId(chatId);
-  }, [chatId, setSelectedChatId]);
+  }, [chatId]);
 
   useEffect(() => {
     if (selectedChatId) {
       loadChatMessages(selectedChatId);
     }
-  }, [selectedChatId, loadChatMessages]);
+  }, [selectedChatId]);
 
   useEffect(() => {
     setShowTitle(!isLoading && (messages.length === 0));
@@ -112,7 +118,9 @@ export default function ChatPage() {
                 .filter((part) => part.type === 'text')
                 .map((part) => part.text)
                 .join('');
-            const isUser = message.role === 'user';
+
+              const isUser = message.role === 'user';
+
             return (
               <div key={message.id} className="mb-4"> {/* Wrapper div */}
                 {/* Media Previews (Above Text) */}
@@ -156,10 +164,16 @@ export default function ChatPage() {
               </div>
             );
           })}
+
+          {/* Typing Indicator (Conditional) */}
+          {isGenerating && (
+                <div className="flex my-3 w-full justify-start">
+                    <TypingIndicator />
+                </div>
+            )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
-
-      {isGenerating && <p className="text-gray-400">Generating...</p>}
 
       <div className="p-4 w-full bg-[#09090b]">
         {(showSuggestions && showTitle) && (
@@ -180,7 +194,7 @@ export default function ChatPage() {
           </div>
         )}
         <div className="w-full max-w-2xl mx-auto">
-          <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} messages={messages} />
+          <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} disabled={isGenerating} messages={messages} />
         </div>
       </div>
     </div>

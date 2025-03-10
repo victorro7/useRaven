@@ -5,6 +5,7 @@ export interface ChatMessagePart {
   text: string;
   type?: 'text' | 'image' | 'video' | 'audio' | 'document' | 'other';
   mimeType?: string;
+  isTyping?: boolean;
 }
 
 export interface FormattedChatMessage {
