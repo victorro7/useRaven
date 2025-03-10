@@ -102,31 +102,27 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
     db = await get_db_pool()
     try:
         files_list, message_list = await _prepare_contents(chat_request)
+        response_text = ""
 
         if files_list:
             contents = files_list + [message_list]
             async for chunk in _generate_stream_vertexai(contents, request):
                 yield chunk
+                try:
+                    response_part = json.loads(chunk.strip())
+                    if "response" in response_part:
+                        response_text += response_part["response"]
+                except:
+                    continue
         else:
             async for chunk in _generate_stream_gemini(message_list, request):
                 yield chunk
-
-        # Collect all chunks to build the full response text
-        response_text = ""
-        # Reset the generator by calling it again (This is important for correct functionality)
-        if files_list:
-          generator =  _generate_stream_vertexai(contents, request)
-        else:
-          generator =  _generate_stream_gemini(message_list, request)
-
-        async for chunk in generator:
-            try:
-                # Parse the JSON and extract the text
-                response_part = json.loads(chunk.strip())
-                if "response" in response_part:
-                  response_text += response_part["response"]
-            except:
-                continue #failed to parse, so just continue
+                try:
+                    response_part = json.loads(chunk.strip())
+                    if "response" in response_part:
+                        response_text += response_part["response"]
+                except:
+                    continue
 
         if response_text and chat_id:
             await add_custom_message_to_db(db, chat_id, user_id, "assistant", response_text)
