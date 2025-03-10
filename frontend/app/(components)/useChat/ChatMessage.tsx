@@ -1,6 +1,6 @@
 // app/(components)/useChat/ChatMessage.tsx
 "use client";
-import React,  { useEffect, useState, useRef }from 'react';
+import React,  { useState, useRef }from 'react';
 import Image from 'next/image';
 import LogoIcon from '../icons/LogoIcon';
 import { TextGenerateEffect } from './useTypewriter';
@@ -19,10 +19,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
   const isUser = role === 'user';
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // State for mobile detection
   const copyButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Inside ChatMessage.tsx, within the component function:
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
@@ -30,10 +28,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-
-  const handleTouchStart = () => {
-      setIsMobile(true); // Set isMobile to true on touch
-  }
 
   const copyToClipboard = async () => {
     if (content) {
@@ -55,19 +49,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
     }
   };
 
-  useEffect(() => {
-      const checkIfMobile = () => {
-          setIsMobile(window.innerWidth <= 768);  // Adjust breakpoint as needed
-      };
-
-      checkIfMobile(); // Check on initial load
-      window.addEventListener('resize', checkIfMobile); // Check on resize
-
-      return () => {
-          window.removeEventListener('resize', checkIfMobile); // Clean up listener
-      };
-  }, []);
-
   if (role === 'system' || role === 'data') {
     return null;
   }
@@ -83,7 +64,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
       className={`flex my-3 w-full ${isUser ? 'justify-end' : 'justify-start'}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
       >
           {/*  Conditional Rendering for Logo */}
           {!isUser && (
@@ -94,7 +74,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
           <div className={`flex flex-col w-full overflow-x-hidden  ${ isUser ? 'items-end' : 'items-start'} relative`}>
             <div className={
               `p-2  max-w-prose ${messageClass} overflow-x-hidden mt-2
-              ${(isHovered || isMobile) ? 'border border-white' : ''}`
+              ${(isHovered ) ? 'border rounded-lg border-white' : ''}`
             }style={{ wordBreak: 'break-word', overflowWrap: 'break-word', scrollbarGutter: 'stable'}}>
 
                   {/* WebKit-specific scrollbar hiding */}
@@ -122,13 +102,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
               </div>
           </div>
           {/* Conditional Copy Icon */}
-          {(isHovered || isMobile) && (
+          {(isHovered ) && (
                     <div className=''>
                       <button
                         ref={copyButtonRef}
                         type="button"
                         onClick={copyToClipboard}
-                        className="sticky top-0 right-1 bg-[#5b5bd1cb] text-white rounded-full p-1 text-xs hover:bg-blue-700"
+                        className="sticky top-0 right-1 text-white rounded-full p-2 sm:text-lg hover:bg-[#5b5bd1cb]"
                         aria-label="Copy message" // ARIA label for accessibility
                       >
                         {isCopied ? <FaCheck /> : <FaCopy />}
