@@ -23,6 +23,7 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { input, setInput, isLoading, isGenerating, setIsGenerating, error, selectedChatId, setSelectedChatId } = useChatState();
   const { messages, loadChatMessages, submitMessage, isMessagesLoading } = useChatMessages();
+  
 
 
   const handleFormSubmit = async (event: React.FormEvent, mediaFiles: File[]) => {
