@@ -44,7 +44,7 @@ export const useChats = () => {
         setChats(prevChats => [{ chatId: data.chat_id, title: `New Chat`, userId: user.id!, createdAt: Date.now() }, ...prevChats]);
         router.push(`/chat/${data.chat_id}`);
       }
-  }, [makeRequest, user?.id, router, setMessages, setInput]);
+  }, [user?.id, router, setMessages, setInput]);
 
   const deleteChat = useCallback(async (chatId: string, currentChatId: string | null) => {
     const res = await makeRequest({ method: 'DELETE', path: `/api/chats/${chatId}` });

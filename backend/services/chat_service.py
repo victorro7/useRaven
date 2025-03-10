@@ -16,7 +16,6 @@ from vertexai.generative_models import GenerativeModel, Part, GenerationConfig, 
 from ..pymodels import ChatRequest
 from ..database import get_db_pool
 from fastapi import Depends
-import urllib.parse
 
 def load_text_from_file(filename):
     try:
@@ -29,13 +28,13 @@ def load_text_from_file(filename):
         print(f"An error occurred while reading the file: {e}")
 
 # --- Gemini Setup ---
-project_name="ravenklair"
+project_ID="careful-aleph-452520-k9"
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 # --- Vertex Setup ---
-vertexai.init(project="klairvoyant")
+vertexai.init(project=project_ID)
 model_name = "gemini-2.0-pro-exp-02-05"
-system_instruction = load_text_from_file("prompts/system_instruction.txt")
+# system_instruction = load_text_from_file("prompts/system_instruction.txt")
 system_instruction = str("Your name is Raven. You are a helpful AI assistant. You can do anything. You released on February 13, 2025."
 "You're built by Victor Osunji. You have a sense of humor and can relate very well with people, even better than a therapist."
 "You do everything to the best of your ability, you are a genius and you consider edge and error cases in your responses."
@@ -102,31 +101,27 @@ async def generate_stream(db, chat_request: ChatRequest, request: Request, chat_
     db = await get_db_pool()
     try:
         files_list, message_list = await _prepare_contents(chat_request)
+        response_text = ""
 
         if files_list:
             contents = files_list + [message_list]
             async for chunk in _generate_stream_vertexai(contents, request):
                 yield chunk
+                try:
+                    response_part = json.loads(chunk.strip())
+                    if "response" in response_part:
+                        response_text += response_part["response"]
+                except:
+                    continue
         else:
             async for chunk in _generate_stream_gemini(message_list, request):
                 yield chunk
-
-        # Collect all chunks to build the full response text
-        response_text = ""
-        # Reset the generator by calling it again (This is important for correct functionality)
-        if files_list:
-          generator =  _generate_stream_vertexai(contents, request)
-        else:
-          generator =  _generate_stream_gemini(message_list, request)
-
-        async for chunk in generator:
-            try:
-                # Parse the JSON and extract the text
-                response_part = json.loads(chunk.strip())
-                if "response" in response_part:
-                  response_text += response_part["response"]
-            except:
-                continue #failed to parse, so just continue
+                try:
+                    response_part = json.loads(chunk.strip())
+                    if "response" in response_part:
+                        response_text += response_part["response"]
+                except:
+                    continue
 
         if response_text and chat_id:
             await add_custom_message_to_db(db, chat_id, user_id, "assistant", response_text)

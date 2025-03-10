@@ -9,6 +9,10 @@ body {
   font-family: 'Geist', serif;
 }
 
+[class^="language-"] { 
+  white-space: pre-wrap !important;
+}
+
 .h-12 {
   height: 68px;
 }
