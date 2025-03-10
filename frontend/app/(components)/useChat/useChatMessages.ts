@@ -100,11 +100,11 @@ export const useChatMessages = () => {
 
           // 2. Add text *after* media upload (if any)
           if (text.trim() !== "") {
-              newUserMessage.parts.push({ text, type: 'text' });
+            newUserMessage.parts.push({ text, type: 'text' });
           }
 
           // Optimistically add the user message *and* a placeholder for the assistant message
-          setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: '',  type: 'text'}], id: newAssistantMessageId }]);
+          setMessages((prevMessages) => [...prevMessages, newUserMessage, { role: 'assistant', parts: [{ text: ''}], id: newAssistantMessageId }]);
           // Set typingMessageId to the ID of the new assistant message
 
         // 3. Construct request body *after* handling media and text

@@ -16,7 +16,6 @@ from vertexai.generative_models import GenerativeModel, Part, GenerationConfig, 
 from ..pymodels import ChatRequest
 from ..database import get_db_pool
 from fastapi import Depends
-import urllib.parse
 
 def load_text_from_file(filename):
     try:
@@ -29,13 +28,13 @@ def load_text_from_file(filename):
         print(f"An error occurred while reading the file: {e}")
 
 # --- Gemini Setup ---
-project_name="ravenklair"
+project_ID="careful-aleph-452520-k9"
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 # --- Vertex Setup ---
-vertexai.init(project="klairvoyant")
+vertexai.init(project=project_ID)
 model_name = "gemini-2.0-pro-exp-02-05"
-system_instruction = load_text_from_file("prompts/system_instruction.txt")
+# system_instruction = load_text_from_file("prompts/system_instruction.txt")
 system_instruction = str("Your name is Raven. You are a helpful AI assistant. You can do anything. You released on February 13, 2025."
 "You're built by Victor Osunji. You have a sense of humor and can relate very well with people, even better than a therapist."
 "You do everything to the best of your ability, you are a genius and you consider edge and error cases in your responses."
