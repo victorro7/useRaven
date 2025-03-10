@@ -12,6 +12,7 @@ import { useChatMessages } from '@/app/(components)/useChat/useChatMessages';
 import { useChatState } from '@/app/(components)/useChat/useChatState';
 import Image from 'next/image';
 import { FaFileAlt, FaVideo, FaFileAudio } from 'react-icons/fa';
+import TypingIndicator from '@/app/(components)/useChat/TypingIndicator';
 
 export default function ChatPage() {
   const params = useParams();
@@ -163,11 +164,16 @@ export default function ChatPage() {
               </div>
             );
           })}
+
+          {/* Typing Indicator (Conditional) */}
+          {isGenerating && (
+                <div className="flex my-3 w-full justify-start">
+                    <TypingIndicator />
+                </div>
+            )}
           <div ref={messagesEndRef} />
         </div>
       </div>
-
-      {isGenerating && <p className="text-gray-400">  <Spinner size="lg" color="white" /> Thinking...</p>}
 
       <div className="p-4 w-full bg-[#09090b]">
         {(showSuggestions && showTitle) && (
@@ -188,7 +194,7 @@ export default function ChatPage() {
           </div>
         )}
         <div className="w-full max-w-2xl mx-auto">
-          <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} messages={messages} />
+          <ChatInput value={input} onChange={(e) => setInput(e.target.value)} onSubmit={handleFormSubmit} disabled={isGenerating} messages={messages} />
         </div>
       </div>
     </div>
