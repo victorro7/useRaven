@@ -27,8 +27,9 @@ export const useChatMessages = () => {
 
   const loadChatMessages = useCallback(async (chatId: string) => {
       setMessages([]);
+      console.log(isMessagesLoading);
       const data = await makeRequest<any[]>({ method: 'GET', path: `/api/chats/${chatId}` });
-
+      console.log(isMessagesLoading);
       if (data) {
           const formattedMessages: FormattedChatMessage[] = data.map((message: any) => {
               const parts: ChatMessagePart[] = [];
