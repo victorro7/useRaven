@@ -29,7 +29,8 @@ def load_text_from_file(filename):
 
 # --- Gemini Setup ---
 project_ID="careful-aleph-452520-k9"
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+location="us-central1"
+client = genai.Client(project=project_ID, location=location)
 
 # --- Vertex Setup ---
 vertexai.init(project=project_ID)

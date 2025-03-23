@@ -1,8 +1,10 @@
 // app/(components)/useChat/ChatMessage.tsx
 "use client";
-import React,  { useState, useRef }from 'react';
+import React,  { useState, useRef, useEffect }from 'react';
 import Image from 'next/image';
 import LogoIcon from '../icons/LogoIcon';
+import MiniLucidLogo from '../icons/MiniLucidLogo';
+
 import { TextGenerateEffect } from './useTypewriter';
 import { parseContent } from '@/lib/parseContent';
 import { FaCopy, FaCheck } from 'react-icons/fa';
@@ -20,6 +22,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
   const [isHovered, setIsHovered] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const copyButtonRef = useRef<HTMLButtonElement>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -59,6 +74,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
 
   const parsedContent = parseContent(content);
 
+  
+
   return (
       <div
       className={`flex my-3 w-full ${isUser ? 'justify-end' : 'justify-start'}`}
@@ -68,7 +85,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, mediaUrl, medi
           {/*  Conditional Rendering for Logo */}
           {!isUser && (
               <div className="mr-2">
-              <LogoIcon />  {/*  Render Logo for assistant messages */}
+                {isMobile ? <LogoIcon /> : <MiniLucidLogo /> }
               </div>
           )}
           <div className={`flex flex-col w-full overflow-x-hidden  ${ isUser ? 'items-end' : 'items-start'} relative`}>
