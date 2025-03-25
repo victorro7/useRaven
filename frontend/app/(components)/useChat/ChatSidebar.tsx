@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useUser, SignOutButton } from "@clerk/nextjs";
+import LucidLogoSmall from '../icons/MiniLucidLogo';
 
 interface SidebarProps {
   chats: any[];
@@ -27,12 +28,26 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // Assuming 768px is your md breakpoint
+
 
   useEffect(() => {
     if (editingChatId && inputRef.current) {
       inputRef.current.focus();
     }
   }, [editingChatId]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleRenameClick = (chatId: string, currentTitle: string) => {
     setEditingChatId(chatId);
@@ -74,7 +89,11 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
             }
         }}>
         <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-          {open ? <Logo /> : <LogoIcon />}
+        {isMobile ? (
+        <LogoIcon  />
+      ) : (
+        <LucidLogoSmall className={open ? 'md:m-2' : 'md:m-1'} />
+      )}
           <div className="mt-8 flex flex-col gap-2">
             {/* New Chat Button */}
             <button

@@ -1,6 +1,4 @@
 // app/(components)/Navbar.tsx
-import LogoIcon from './icons/LogoIcon';
-
 interface NavbarProps {
   title: string;
 }
@@ -12,8 +10,7 @@ const Navbar: React.FC<NavbarProps> = ({ title }) => {
       <div className="container mx-auto flex items-center justify-between">
         {/*  Left Side: UserButton, Logo, and Title */}
         <div className="flex items-center">
-          <LogoIcon className="h-8 w-8 text-primary mr-2" />
-          <h1 className="text-3xl font-semibold tracking-wide">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]">{title}</h1>
         </div>
       </div>
     </header>
