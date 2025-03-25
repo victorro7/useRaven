@@ -54,20 +54,24 @@ export const useApiRequest = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
+                setLoading(false);
                 throw new Error(errorData.detail || response.statusText);
             }
 
             if (response.status === 204) { // No Content
                 return null;
             }
+            setLoading(false);
             return await response.json() as T;
 
         } catch (err: any) {
           if (err instanceof DOMException && err.name === 'AbortError') {
               // Don't set an error message for AbortError
           } else {
+            setLoading(false);
             setError(err.message || "An unexpected error occurred.");
           }
+          setLoading(false);
           return null;
         } finally {
           setLoading(false);
@@ -77,5 +81,5 @@ export const useApiRequest = () => {
         }
     }, []);
 
-    return { makeRequest, loading, error, abortController };
+    return { makeRequest,loading, error, abortController };
 };
