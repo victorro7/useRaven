@@ -1,34 +1,205 @@
-## Klair
+# 🎨 Raven Frontend - Next.js Application
 
-First, run the development server:
+> **Modern React application with TypeScript, built for AI chat interactions**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The frontend of Raven is a sophisticated Next.js 14 application featuring real-time AI chat capabilities, multimodal file uploads, and a beautiful responsive design.
+
+## ✨ Frontend Features
+
+### 🤖 **Chat Interface**
+- **Real-time streaming responses** with Server-Sent Events
+- **Markdown rendering** with syntax highlighting for code blocks
+- **Copy-to-clipboard** functionality for AI responses
+- **Typing indicators** and loading states
+- **Message history** with collapsible sidebar
+
+### 📁 **File Upload System**
+- **Drag-and-drop interface** supporting multiple files
+- **Multi-format support**: Images, Videos, Audio, Documents
+- **Real-time upload progress** with visual feedback
+- **File type validation** and size limits (20MB)
+- **Preview capabilities** for uploaded media
+
+### 🎨 **Design & UX**
+- **Responsive design** optimized for all devices
+- **Dark theme** with custom gradient color palette
+- **Smooth animations** using Framer Motion
+- **Custom component library** with consistent styling
+- **Mobile-first approach** with touch-friendly interactions
+
+### 🔐 **Authentication**
+- **Clerk integration** with Google OAuth
+- **Protected routes** and user session management
+- **SSO callback handling** for seamless authentication
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with custom design system
+- **Authentication**: Clerk
+- **Animation**: Framer Motion
+- **UI Components**: Radix UI primitives
+- **Icons**: Tabler Icons, React Icons, Lucide React
+- **State Management**: Custom React hooks
+
+## 🏗️ Project Structure
+
+```
+frontend/
+├── 📁 app/                     # Next.js App Router
+│   ├── 📁 (components)/        # Reusable React components
+│   │   ├── 📁 auth/            # Authentication components
+│   │   │   └── AuthForm.tsx    # Main authentication form
+│   │   ├── 📁 buttons/         # Custom button components
+│   │   │   ├── GradientButton.tsx
+│   │   │   └── GradientBorderButton.tsx
+│   │   ├── 📁 icons/           # SVG icon components
+│   │   │   ├── LogoIcon.tsx
+│   │   │   ├── SendIcon.tsx
+│   │   │   ├── UploadIcon.tsx
+│   │   │   └── Spinner.tsx
+│   │   ├── 📁 ui/              # Base UI components
+│   │   │   ├── button.tsx      # Shadcn/ui button
+│   │   │   ├── input.tsx       # Form input component
+│   │   │   ├── card.tsx        # Card container
+│   │   │   ├── sidebar.tsx     # Sidebar component
+│   │   │   ├── code-block.tsx  # Code syntax highlighting
+│   │   │   ├── background-beams.tsx # Background animation
+│   │   │   └── typewriter-effect.tsx # Typing animation
+│   │   └── 📁 useChat/         # Chat-specific components
+│   │       ├── ChatInput.tsx   # Message input component
+│   │       ├── ChatMessage.tsx # Individual message display
+│   │       ├── ChatSidebar.tsx # Chat history sidebar
+│   │       ├── TypingIndicator.tsx # Loading animation
+│   │       ├── useApiRequest.ts # API communication hook
+│   │       ├── useChatMessages.ts # Message state management
+│   │       ├── useChatState.ts # Chat state management
+│   │       ├── useChats.ts     # Chat list management
+│   │       ├── useMediaUpload.ts # File upload handling
+│   │       ├── useTypewriter.tsx # Typewriter effect
+│   │       └── constants.ts    # Chat constants
+│   ├── 📁 chat/                # Chat pages
+│   │   ├── 📁 [chatId]/        # Dynamic chat routes
+│   │   │   └── page.tsx        # Individual chat page
+│   │   ├── layout.tsx          # Chat layout wrapper
+│   │   ├── page.tsx            # Main chat page
+│   │   └── MobileLayout.tsx    # Mobile-specific layout
+│   ├── 📁 sign-in/             # Authentication pages
+│   │   └── page.tsx            # Sign-in page
+│   ├── 📁 sso-callback/        # OAuth callback
+│   │   └── page.tsx            # SSO callback handler
+│   ├── layout.tsx              # Root layout
+│   ├── page.tsx                # Home page
+│   ├── landingpage.tsx         # Landing page component
+│   └── app.css                 # Global styles
+├── 📁 lib/                     # Utility functions
+├── 📁 .next/                   # Next.js build output
+├── 📄 package.json             # Dependencies and scripts
+├── 📄 next.config.mjs          # Next.js configuration
+├── 📄 tailwind.config.ts       # Tailwind CSS configuration
+├── 📄 tsconfig.json            # TypeScript configuration
+└── 📄 README.md                # This file
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Quick Start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
+- **Node.js** 18+ and npm/yarn
+- **Backend running** on http://localhost:8000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Installation
 
-## Learn More
+```bash
+# Install dependencies
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# Set up environment variables
+cp .env.example .env.local
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Start development server
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Environment Variables
 
-## Deploy on Vercel
+Create a `.env.local` file with:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+# Backend API URL
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+```
+
+### Development Commands
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
+
+# Type checking
+npm run type-check
+```
+
+### **Key Components**
+
+#### `ChatInput`
+- Message composition with file attachment
+- Drag-and-drop file upload
+- Send button with loading states
+- Keyboard shortcuts (Enter to send)
+
+#### `ChatMessage`
+- Markdown rendering with syntax highlighting
+- Copy-to-clipboard functionality
+- User/AI message differentiation
+- Timestamp display
+
+#### `ChatSidebar`
+- Chat history management
+- Create new chat functionality
+- Chat renaming and deletion
+- Responsive collapse/expand
+
+### **Components**
+- **Buttons**: Gradient backgrounds with hover effects
+- **Cards**: Rounded corners with subtle borders
+- **Inputs**: Focus states with gradient borders
+- **Animations**: Framer Motion for smooth transitions
+
+## 📱 Responsive Design
+
+### **Breakpoints**
+- **Mobile**: `< 768px`
+- **Tablet**: `768px - 1024px`
+- **Desktop**: `> 1024px`
+
+### **Mobile Features**
+- Touch-friendly button sizes (min 44px)
+- Swipe gestures for sidebar
+- Optimized chat input for mobile keyboards
+- Responsive file upload area
+
+## 🧪 Testing & Development
+
+### **Code Quality**
+- **TypeScript** for type safety
+- **ESLint** for code linting
+- **Prettier** for code formatting
+
+### **Performance Optimizations**
+- **Code splitting** with Next.js dynamic imports
+- **Image optimization** with Next.js Image component
+- **Bundle analysis** with `@next/bundle-analyzer`
+- **Lazy loading** for non-critical components
