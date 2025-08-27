@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import asyncpg
-from fastapi import Depends
+from fastapi import Depends, Request
 
 load_dotenv()
 
@@ -18,7 +18,13 @@ Base = declarative_base() #for models
 
 async def get_db_pool():
     try:
-        pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
+        # Setting statement_cache_size=0 to fix the pgbouncer prepared statement issue
+        pool = await asyncpg.create_pool(
+            DATABASE_URL, 
+            min_size=1, 
+            max_size=10,
+            statement_cache_size=0  # This prevents the "prepared statement already exists" error
+        )
         return pool
     except Exception as e:
         print(f"Failed to create connection pool: {e}")
@@ -37,7 +43,11 @@ async def close_db(app): #pass app
         await app.state.db_pool.close()
         print("Connection pool closed successfully")
 
-async def get_db(pool: asyncpg.Pool = Depends(get_db_pool)):
+async def get_pool(request: Request) -> asyncpg.Pool:
+    # Return the shared pool stored on the app state
+    return request.app.state.db_pool
+
+async def get_db(pool: asyncpg.Pool = Depends(get_pool)):
     conn = None
     try:
         conn = await pool.acquire()

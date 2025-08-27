@@ -183,7 +183,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ value, onChange, onSubmit, disabl
               <input
                 type="file"
                 id="file-upload"
-                accept="image/*, .heic"
+                accept="image/*,video/*,audio/*,application/pdf,.heic,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
                 onChange={handleFileChange}
                 className="hidden"
                 multiple

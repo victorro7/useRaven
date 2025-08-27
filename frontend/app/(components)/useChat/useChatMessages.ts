@@ -161,7 +161,8 @@ export const useChatMessages = () => {
               try {
                   const jsonChunk = JSON.parse(line);
                   if (jsonChunk.error) {
-                  throw new Error(jsonChunk.error);
+                  console.error('Server stream error:', jsonChunk.error);
+                  break;
                   }
 
                   if (jsonChunk.response && isMounted.current) {
@@ -200,8 +201,9 @@ export const useChatMessages = () => {
                   if (parseError instanceof DOMException && parseError.name === 'AbortError') {
                   return; // Expected
                   }
-                  console.error('Error parsing JSON:', parseError, line);
-                  return;
+                  // Skip non-JSON lines gracefully
+                  console.warn('Skipping non-JSON stream line:', line);
+                  continue;
               }
               }
           }

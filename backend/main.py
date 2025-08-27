@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from svix.webhooks import Webhook, WebhookVerificationError
 from .routers import raven
-from .database import init_db, close_db, get_db_pool
+from .database import init_db, close_db, get_db
 from .pymodels import *
 import os
 from dotenv import load_dotenv
@@ -35,7 +35,7 @@ app.add_middleware(
 # --- CORS ---
 
 @app.post("/clerk-webhook")
-async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_db_pool)):
+async def clerk_webhook(request: Request, db: asyncpg.Connection = Depends(get_db)):
     """Handles Clerk webhooks."""
     print("request: ", request)
     payload = await request.body()
@@ -111,7 +111,7 @@ async def create_user(db, user_data: Dict):
         print("profile_image_url: ", profile_image_url)
 
         await db.execute('''
-            INSERT INTO users (id, email, first_name, last_name, profile_image_url)
+            INSERT INTO users_raven (id, email, first_name, last_name, profile_image_url)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO NOTHING  -- Handle potential duplicates
         ''', user_id, email, first_name, last_name, profile_image_url)
@@ -126,7 +126,7 @@ async def create_tables(db):
     """Creates the necessary database tables."""
     async with db.acquire() as connection:
         await connection.execute('''
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS users_raven (
                 id TEXT PRIMARY KEY,
                 email TEXT,
                 first_name TEXT,
@@ -146,8 +146,8 @@ async def create_tables(db):
 @app.on_event("startup")
 async def startup():
     await init_db(app)
-    db = await get_db_pool()
-    await create_tables(db)
+    # Use the shared pool initialized on app.state for table creation
+    await create_tables(app.state.db_pool)
 
 @app.on_event("shutdown")
 async def shutdown():

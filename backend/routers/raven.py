@@ -3,10 +3,10 @@ from httpx import request
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from ..pymodels import PresignedUrlRequest, PresignedUrlResponse, ChatRequest, ChatCreateRequest, ChatCreateResponse, Chat, ChatMessage, ChatRenameRequest
-from ..database import get_db
+from ..database import get_db, get_pool
 from ..auth import get_current_user
 import asyncpg
-from ..services.chat_service import generate_stream, add_messages_to_db  # Import service functions
+from ..services.chat_service import generate_stream, add_messages_to_db
 import uuid
 from typing import List
 from google.cloud import storage
@@ -60,14 +60,14 @@ async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = De
         url = blob.generate_signed_url(
             version="v4",
             credentials=credentials,
-            expiration=timedelta(minutes=15),  # URL expires in 15 minutes
+            expiration=timedelta(days=7),  # URL expires in 7 days
             method="PUT",  # Allow PUT requests (uploads)
             content_type=request_body.contentType,
         )
         download_url = blob.generate_signed_url(
             version="v4",
             credentials=credentials,
-            expiration=timedelta(days=7),  # URL expires in 7 days (adjust as needed)
+            expiration=timedelta(days=7),  # URL expires in 7 days
             method="GET",  # Allow GET requests (downloads)
         )
         # Return *both* the presigned URL *and* the final GCS URL
@@ -82,7 +82,7 @@ async def create_chat(chat_create_request: ChatCreateRequest, user_id: str = Dep
     chat_id = str(uuid.uuid4())
     try:
         # Check if the user exists
-        user_exists = await db.fetchrow("SELECT 1 FROM users WHERE id = $1", user_id)
+        user_exists = await db.fetchrow("SELECT 1 FROM users_raven WHERE id = $1", user_id)
         if not user_exists:
             raise HTTPException(status_code=400, detail="User not found")  # Or 404 if appropriate
 
@@ -170,7 +170,7 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
             raise HTTPException(status_code=500, detail=f"Failed to delete chat: {e}")
 
 @router.post("/chat")
-async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), db: asyncpg.Connection = Depends(get_db)):
+async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), pool: asyncpg.Pool = Depends(get_pool)):
     print(chat_request)
     if(len(chat_request.messages) >= 1):
         try:
@@ -180,13 +180,15 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
             raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
     else:
         chat_creation_request = ChatCreateRequest(user_id=user_id)
-        created_chat = await create_chat(chat_creation_request, user_id, db)
-        chat_id = created_chat.chat_id
+        async with pool.acquire() as db:
+            created_chat = await create_chat(chat_creation_request, user_id, db)
+            chat_id = created_chat.chat_id
 
     try:
         if chat_id:
-            await add_messages_to_db(db, chat_request, chat_id, user_id)
-        return StreamingResponse(generate_stream(db, chat_request, request, chat_id, user_id), media_type="text/event-stream")
+            async with pool.acquire() as db:
+                await add_messages_to_db(db, chat_request, chat_id, user_id)
+        return StreamingResponse(generate_stream(pool, chat_request, request, chat_id, user_id), media_type="text/event-stream")
     except Exception as e:
         print(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")
