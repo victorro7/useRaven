@@ -7,11 +7,13 @@ The backend of Raven is a sophisticated FastAPI application featuring real-time 
 ## ✨ Backend Features
 
 ### 🤖 **AI Integration**
-- **Google Gemini 2.0 Pro** integration for conversational AI
+- **Google Gemini 2.5 Flash** integration for conversational AI
 - **Real-time streaming responses** using Server-Sent Events
 - **Multimodal processing** for images, videos, audio, and documents
-- **Google Search integration** for enhanced contextual responses
-- **Intelligent prompt engineering** with customizable system prompts
+- **Intelligent media inclusion** based on text references
+- **Token-aware context management** with conversation summaries
+- **Dynamic system instruction loading** from Google Cloud Storage
+- **Vertex AI client** with gs:// URI support for seamless media processing
 
 ### 🔐 **Authentication & Security**
 - **Clerk integration** with JWT token validation
@@ -35,13 +37,14 @@ The backend of Raven is a sophisticated FastAPI application featuring real-time 
 ## 🛠️ Technology Stack
 
 - **Framework**: FastAPI (Python 3.11)
-- **Database**: PostgreSQL with AsyncPG
-- **AI**: Google Gemini 2.0 Pro + Vertex AI
-- **Authentication**: Clerk Backend SDK
-- **File Storage**: Google Cloud Storage
-- **Migrations**: Alembic
-- **Validation**: Pydantic v2
-- **HTTP Client**: httpx for async requests
+- **Database**: PostgreSQL with AsyncPG and connection pooling
+- **AI**: Google Gemini 2.5 Flash + Vertex AI
+- **Authentication**: Clerk Backend SDK with JWT validation
+- **File Storage**: Google Cloud Storage with signed URLs
+- **Migrations**: Alembic for schema versioning
+- **Validation**: Pydantic v2 with comprehensive type checking
+- **Context Management**: Rolling conversation summaries and token-aware windowing
+- **Media Processing**: Intelligent inclusion with retry mechanisms
 
 ## 🏗️ Project Structure
 
@@ -52,7 +55,12 @@ backend/
 │   └── raven.py               # Main chat and file routes
 ├── 📁 services/               # Business logic layer
 │   ├── __init__.py            # Service initialization
-│   └── chat_service.py        # AI chat service
+│   ├── chat_service.py        # AI chat service with streaming
+│   ├── message_service.py     # Message history and formatting
+│   ├── token_service.py       # Token counting and management
+│   ├── summary_service.py     # Rolling conversation summaries
+│   ├── media_service.py       # Intelligent media inclusion
+│   └── system_service.py      # Dynamic system instruction loading
 ├── 📁 migrations/             # Database schema migrations
 │   ├── 📁 versions/           # Migration version files
 │   ├── env.py                 # Alembic environment
@@ -110,13 +118,32 @@ CLERK_SECRET_KEY=sk_test_your_clerk_secret_key
 CLERK_WEBHOOK_SECRET=whsec_your_webhook_secret
 
 # Google Cloud Configuration
-GOOGLE_APPLICATION_CREDENTIALS=path/to/service-account-key.json
+PROJECT_ID=your-gcp-project-id
+LOCATION=us-central1
 GCS_BUCKET_NAME=your-storage-bucket-name
 
 # AI Configuration
-GEMINI_API_KEY=your_gemini_api_key
-GOOGLE_SEARCH_API_KEY=your_search_api_key
-GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id
+RAVEN_MODEL=gemini-2.5-flash
+SYSTEM_INSTRUCTION_URL=gs://your-bucket/system_instruction.txt
+
+# Context Management
+CHAT_WINDOW_SIZE=20
+MAX_CONTEXT_TOKENS=8000
+TARGET_WINDOW_TOKENS=6000
+
+# Summary Configuration
+SUMMARY_TRIGGER_TOKENS=3500
+SUMMARY_TARGET_TOKENS=400
+SUMMARY_MAX_TOKENS=600
+SUMMARY_MIN_MESSAGES=10
+SUMMARY_KEEP_RECENT=5
+
+# Media Settings
+MEDIA_INCLUDE_ONLY_CURRENT=true
+MEDIA_ALLOW_HISTORY_IF_REFERENCED=true
+MEDIA_MAX_PARTS=3
+MEDIA_MAX_IMAGES=2
+MEDIA_MAX_VIDEOS=1
 
 # Application Settings
 PORT=8000
