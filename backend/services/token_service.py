@@ -14,7 +14,7 @@ class TokenService:
         project_ID = os.getenv("PROJECT_ID", "careful-aleph-452520-k9")
         location = os.getenv("LOCATION", "us-central1")
         self.client = genai.Client(vertexai=True, project=project_ID, location=location)
-        self.model_name = "gemini-2.5-flash"
+        self.model_name = os.getenv("RAVEN_MODEL", "gemini-2.5-flash")
         
         # Token budgets from environment
         self.max_context_tokens = int(os.getenv("MAX_CONTEXT_TOKENS", "8000"))

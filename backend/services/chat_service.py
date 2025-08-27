@@ -54,8 +54,8 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 logger.info("Using Vertex AI (project/location)")
 
-# Define model name
-model_name = "gemini-2.5-flash"
+# Define model name via env with default
+model_name = os.getenv("RAVEN_MODEL", "gemini-2.5-flash")
 
 # System instruction will be loaded dynamically from system_service
 
