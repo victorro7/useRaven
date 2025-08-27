@@ -1,3 +1,4 @@
 .aider*
 .env
 .env.local
+backend/ravenklair-db-sa-key.json
