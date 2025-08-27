@@ -14,7 +14,7 @@ Raven is a sophisticated AI conversational platform that delivers ChatGPT-level 
 
 Here is a glimpse of Raven's clean and modern user interface in action.
 
-<img src="raven-img/demoChat.PNG" alt="Raven Chat Interface" width="800">
+<img src="raven-img/demoChat.png" alt="Raven Chat Interface" width="800">
 
 ## ✨ Key Features
 
