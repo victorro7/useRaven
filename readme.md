@@ -8,7 +8,7 @@ Raven is a sophisticated AI conversational platform that delivers ChatGPT-level 
 
 **Website:** [https://useraven.app](https://useraven.app)
 
-> ⚠️ **Currently under maintenance**
+<!-- > ⚠️ **Currently under maintenance** -->
 
 ## 🖼️ Application Showcase
 
@@ -19,10 +19,12 @@ Here is a glimpse of Raven's clean and modern user interface in action.
 ## ✨ Key Features
 
 ### 🤖 **Advanced AI Capabilities**
-- **Real-time streaming responses** with sub-second latency using Google Gemini
+- **Real-time streaming responses** with sub-second latency using Google Gemini 2.5 Flash
 - **Multimodal AI processing** - analyze text, images, videos, audio, and documents simultaneously
-- **Google Search integration** for enhanced contextual responses
-- **Intelligent conversation memory** with full chat history persistence
+- **Intelligent media inclusion** based on text references for optimized context
+- **Token-aware conversation management** with rolling summaries for long conversations
+- **Dynamic system instruction loading** for flexible AI personality configuration
+- **Vertex AI integration** with gs:// URI support for seamless cloud storage access
 
 ### 📁 **Sophisticated File Handling**
 - **Drag-and-drop interface** supporting 20+ concurrent file uploads
@@ -34,9 +36,11 @@ Here is a glimpse of Raven's clean and modern user interface in action.
 - **Responsive design** optimized for mobile, tablet, and desktop
 - **Real-time typing indicators** and loading states
 - **Markdown parsing** with syntax highlighting for code blocks
-- **Collapsible sidebar** with chat history management
+- **Intelligent sidebar** with chat history management and empty chat prevention
 - **Beautiful gradient animations** using Framer Motion
 - **Copy-to-clipboard** functionality for AI responses
+- **Personalized greetings** with user's name integration
+- **Accessibility features** with proper disabled states and tooltips
 
 ### 🔐 **Enterprise-Ready Security**
 - **Clerk authentication** with Google OAuth integration
@@ -57,13 +61,14 @@ Here is a glimpse of Raven's clean and modern user interface in action.
 - **UI Components**: Radix UI primitives with custom styling
 
 ### **Backend** ([View Backend README](backend/README.md))
-- **Framework**: FastAPI (Python 3.11)
-- **Database**: PostgreSQL with AsyncPG for optimal performance
-- **AI Integration**: Google Gemini 2.0 Pro + Vertex AI
-- **File Storage**: Google Cloud Storage with presigned URLs
-- **Authentication**: Clerk backend SDK with JWT validation
-- **Database Migrations**: Alembic for schema management
-- **Async Processing**: Asyncio for concurrent operations
+- **Framework**: FastAPI (Python 3.11) with async/await patterns
+- **Database**: PostgreSQL with AsyncPG and connection pooling
+- **AI Integration**: Google Gemini 2.5 Flash + Vertex AI with gs:// URI support
+- **File Storage**: Google Cloud Storage with signed URLs and intelligent media processing
+- **Authentication**: Clerk backend SDK with JWT validation and CORS configuration
+- **Context Management**: Token-aware windowing and rolling conversation summaries
+- **Services Architecture**: Modular service layer with separation of concerns
+- **Database Migrations**: Alembic for schema versioning and management
 
 ### **Infrastructure & DevOps**
 - **Cloud Platform**: Google Cloud Platform
@@ -146,9 +151,11 @@ For detailed setup instructions, please refer to:
 
 ### **AI Integration Excellence**
 - **Multi-modal AI processing** handling text, images, videos, and documents
-- **Context-aware responses** with conversation memory and file analysis
+- **Intelligent media inclusion** based on text references for optimal context
+- **Token-aware conversation management** with rolling summaries for long chats
 - **Streaming response architecture** for real-time user experience
-- **Intelligent prompt engineering** for optimal AI performance
+- **Dynamic system instruction loading** from cloud storage for flexible AI personality
+- **Vertex AI integration** with gs:// URI support for seamless media processing
 
 ### **Security & Authentication**
 - **JWT token validation** with proper expiration handling

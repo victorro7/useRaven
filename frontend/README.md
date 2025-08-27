@@ -11,7 +11,9 @@ The frontend of Raven is a sophisticated Next.js 14 application featuring real-t
 - **Markdown rendering** with syntax highlighting for code blocks
 - **Copy-to-clipboard** functionality for AI responses
 - **Typing indicators** and loading states
-- **Message history** with collapsible sidebar
+- **Message history** with intelligent sidebar management
+- **Personalized greetings** with user's name
+- **Empty chat prevention** to avoid creating unnecessary conversations
 
 ### 📁 **File Upload System**
 - **Drag-and-drop interface** supporting multiple files
@@ -26,6 +28,8 @@ The frontend of Raven is a sophisticated Next.js 14 application featuring real-t
 - **Smooth animations** using Framer Motion
 - **Custom component library** with consistent styling
 - **Mobile-first approach** with touch-friendly interactions
+- **Accessibility indicators** for disabled states and tooltips
+- **Visual feedback** for user interactions and loading states
 
 ### 🔐 **Authentication**
 - **Clerk integration** with Google OAuth
