@@ -15,6 +15,7 @@ from google.cloud import storage
 from google.genai import types
 from pydantic import BaseModel, Field
 from ..pymodels import ChatRequest
+from .message_service import MessageHistoryService
 
 def load_text_from_file(filename):
     try:
@@ -34,6 +35,7 @@ load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 project_ID = os.getenv("PROJECT_ID", "careful-aleph-452520-k9")
 location = os.getenv("LOCATION", "us-central1")
+chat_window_size = int(os.getenv("CHAT_WINDOW_SIZE", "20"))  # Default to last 20 messages
 
 # Always use Vertex AI with ADC/service account
 client = genai.Client(vertexai=True, project=project_ID, location=location)
@@ -146,21 +148,62 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
 
 async def generate_stream(pool, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
     """Generates a streamed response for the chat, handling both text and media with Gemini.
-    Acquires its own DB connection from the shared pool to avoid using a released connection during streaming.
+    Uses server-side windowing to include the last N messages from database plus the current user message.
     """
     try:
-        print("DEBUG: Starting generate_stream")
-        # Prepare prompt string and any media parts
-        prompt, media_parts = await _prepare_contents(chat_request)
-        print(f"DEBUG: After _prepare_contents - prompt: {prompt[:100]}...")
-        print(f"DEBUG: After _prepare_contents - media_parts count: {len(media_parts)}")
+        print("DEBUG: Starting generate_stream with server-side windowing")
+        
+        # Get a database connection for fetching history
+        async with pool.acquire() as db:
+            # Fetch recent message history from database (excluding the latest message we just saved)
+            print(f"DEBUG: Fetching last {chat_window_size} messages from database (excluding most recent)")
+            history_messages = await MessageHistoryService.get_recent_messages(
+                db, chat_id, user_id, limit=chat_window_size, exclude_latest=1  # Exclude the message we just saved
+            )
+            print(f"DEBUG: Retrieved {len(history_messages)} messages from history")
+            for i, msg in enumerate(history_messages):
+                print(f"DEBUG: History[{i}] - Role: {msg.role}, Parts: {len(msg.parts)}")
+                for j, part in enumerate(msg.parts):
+                    content_preview = part.text[:50] + "..." if part.text and len(part.text) > 50 else part.text
+                    print(f"DEBUG:   Part[{j}] - Type: {part.type}, Content: {content_preview}")
+            
+            # Extract ONLY the new user message (ignore any history client sent)
+            print(f"DEBUG: Client sent {len(chat_request.messages)} total messages")
+            new_user_messages = []
+            if chat_request.messages:
+                # Get the very last message from client - this should be the new one
+                latest_client_message = chat_request.messages[-1]
+                print(f"DEBUG: Latest client message role: {latest_client_message.role}")
+                print(f"DEBUG: Latest client message parts: {len(latest_client_message.parts)}")
+                for j, part in enumerate(latest_client_message.parts):
+                    content_preview = part.text[:50] + "..." if part.text and len(part.text) > 50 else part.text
+                    print(f"DEBUG:   New Part[{j}] - Type: {part.type}, Content: {content_preview}")
+                
+                # Only include if it's a user message (not assistant)
+                if latest_client_message.role == "user":
+                    new_user_messages = [latest_client_message]
+                    print(f"DEBUG: Extracted new user message")
+                else:
+                    print(f"DEBUG: Skipping non-user message from client")
+            
+            print(f"DEBUG: New user messages count: {len(new_user_messages)}")
+            
+            # Combine history with ONLY the new message
+            all_messages = history_messages + new_user_messages
+            print(f"DEBUG: Total messages for model context: {len(all_messages)}")
+            
+            # Format the combined conversation for the model
+            prompt, media_parts = await MessageHistoryService.format_conversation_for_model(all_messages)
+            print(f"DEBUG: Formatted prompt length: {len(prompt)} chars")
+            print(f"DEBUG: Total media parts: {len(media_parts)}")
+            
         response_text = ""
 
         # Build the contents argument: plain string for text-only, or [string, *media_parts]
         stream_contents: Union[str, List[Union[str, types.Part]]]
         if media_parts:
             stream_contents = [prompt] + media_parts
-            print(f"Sending to model - Text prompt: {prompt}")
+            print(f"Sending to model - Text prompt preview: {prompt[:200]}...")
             print(f"Sending to model - Media parts count: {len(media_parts)}")
         else:
             stream_contents = prompt
@@ -207,7 +250,8 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
         chat_requests = [chat_requests]
 
     for chat_request in chat_requests:
-        messages_to_add = get_last_messages(chat_request.messages)
+        # Only process the last message from the request (the new one)
+        messages_to_add = [chat_request.messages[-1]] if chat_request.messages else []
 
         for message in messages_to_add:
             role = message.role
