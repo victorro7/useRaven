@@ -19,6 +19,7 @@ from ..pymodels import ChatRequest
 from .message_service import MessageHistoryService
 from .token_service import TokenService
 from .media_service import MediaInclusionService, MediaInclusionConfig
+from .system_service import system_service
 
 def load_text_from_file(filename):
     try:
@@ -53,12 +54,10 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 logger.info("Using Vertex AI (project/location)")
 
-# Define system instruction
+# Define model name
 model_name = "gemini-2.5-flash"
-system_instruction = str("Your name is Raven. You are a helpful AI assistant. You can do anything. You released on February 13, 2025."
-"You're built by Victor Osunji. You have a sense of humor and can relate very well with people, even better than a therapist."
-"You do everything to the best of your ability, you are a genius and you consider edge and error cases in your responses."
-"Do not use emojis in your responses. You don't have to reiterate who/what you are in your responses and who made you.")
+
+# System instruction will be loaded dynamically from system_service
 
 async def _prepare_contents(chat_request: ChatRequest) -> Tuple[str, List[types.Part]]:
     """Builds a plain text prompt plus a list of media Parts.
@@ -112,10 +111,11 @@ async def _prepare_contents(chat_request: ChatRequest) -> Tuple[str, List[types.
     prompt = "\n".join(prompt_lines)
     return prompt, media_parts
 
-async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], request: Request) -> AsyncGenerator[str, None]:
+async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], request: Request, personalized_system: str = None) -> AsyncGenerator[str, None]:
     """Generates content using Gemini API with streaming for text and/or media.
 
     contents may be a plain string, or a list mixing the prompt string and media Parts.
+    personalized_system will override the default system instruction if provided.
     """
     logger.debug("Starting _generate_stream")
     
@@ -133,9 +133,9 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
                 logger.debug(f"_generate_stream item type: {type(item)}")
     
     try:
-        # Configure Gemini with system instruction
+        # Configure Gemini with personalized system instruction if provided
         generation_config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
+            system_instruction=personalized_system or system_instruction,
             # thinking_config=types.ThinkingConfig(thinking_budget=0)
         )
         
@@ -160,12 +160,24 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
 async def generate_stream(pool, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
     """Generates a streamed response for the chat, handling both text and media with Gemini.
     Uses server-side windowing to include the last N messages from database plus the current user message.
+    Enriches the system prompt with user information.
     """
     try:
         logger.debug("Starting generate_stream with server-side windowing")
         
         # Get a database connection for fetching history
         async with pool.acquire() as db:
+            # Fetch user's name or other profile info
+            user_info = await db.fetchrow("""
+                SELECT email, first_name, last_name FROM users_raven WHERE id = $1
+            """, user_id)
+            
+            # Get system instruction from service (loads from GCS or local fallback)
+            base_instruction = await system_service.get_system_instruction()
+            
+            # Personalize the instruction for this user
+            personalized_system = system_service.personalize_for_user(base_instruction, user_info)
+            
             # Use summary-aware message retrieval (falls back to token-aware windowing)
             logger.debug(f"Fetching history with summary support. budget={target_window_tokens}")
             history_messages, history_tokens = await MessageHistoryService.get_messages_with_summary(
@@ -194,16 +206,16 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
             all_messages = history_messages + new_user_messages
             logger.debug(f"Total context messages={len(all_messages)} history_tokens={history_tokens}")
             
-            # Format the combined conversation for the model (text + raw media parts)
-            prompt, raw_media_parts = await MessageHistoryService.format_conversation_for_model(all_messages)
-            
-            # Intelligent media inclusion: filter media based on latest user references
+            # Intelligent media inclusion: decide allowed URLs first
             media_selector = MediaInclusionService(MediaInclusionConfig())
             latest_user_msg = new_user_messages[0] if new_user_messages else None
             allowed_urls = media_selector.get_allowed_media_urls(latest_user_msg, history_messages)
-            
-            # Keep only allowed media
-            media_parts = [p for p in raw_media_parts if getattr(p, 'file_uri', None) in allowed_urls]
+
+            # Convert allowed URLs to gs:// for matching in formatter
+            allowed_gs = {convert_storage_path(u, 'gs_uri') for u in allowed_urls}
+
+            # Format the conversation for the model, passing allowed URIs so formatter can skip others
+            prompt, media_parts = await MessageHistoryService.format_conversation_for_model(all_messages, allowed_gs_uris=allowed_gs)
             logger.debug(f"Prompt chars={len(prompt)} media_parts={len(media_parts)}")
             
         response_text = ""
@@ -217,7 +229,7 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
             stream_contents = prompt
 
         # Generate and stream the response
-        async for chunk in _generate_stream(stream_contents, request):
+        async for chunk in _generate_stream(stream_contents, request, personalized_system):
             yield chunk
             try:
                 response_part = json.loads(chunk.strip())
@@ -297,11 +309,11 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
                     media_type = part.mimeType
                     media_url = part.text
                     if media_url:
-                        # Store the clean public URL in the database
-                        public_url = convert_storage_path(media_url, 'public_url')
+                        # Store gs:// URI in the database for server-side processing
+                        gs_uri = convert_storage_path(media_url, 'gs_uri')
                         # Only store tokens for media-only messages (when no text content)
                         media_tokens = message_tokens if not content.strip() else 0
-                        await add_message_to_db(db, chat_id, user_id, role, "", media_type, public_url, token_count=media_tokens)
+                        await add_message_to_db(db, chat_id, user_id, role, "", media_type, gs_uri, token_count=media_tokens)
 
 def get_last_messages(chat_messages):
     if not chat_messages:

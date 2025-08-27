@@ -7,6 +7,7 @@ from ..database import get_db, get_pool
 from ..auth import get_current_user
 import asyncpg
 from ..services.chat_service import generate_stream, add_messages_to_db
+from ..utils import convert_storage_path
 import uuid
 from typing import List
 from google.cloud import storage
@@ -124,17 +125,47 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
         """
         rows = await db.fetch(query, chat_id)
 
-        messages = [
-            ChatMessage(
-                messageId=row['id'],
-                role=row['role'],
-                content=row['content'].strip(),
-                timestamp=row['timestamp'],
-                media_type=row['media_type'],
-                media_url=row['media_url']
+        messages = []
+        for row in rows:
+            media_url = row['media_url']
+
+            # If we stored gs://, sign a temporary GET URL so the browser can render it
+            if media_url:
+                try:
+                    gs_uri = convert_storage_path(media_url, 'gs_uri')
+                    if gs_uri.startswith('gs://'):
+                        parts = gs_uri.replace('gs://', '').split('/', 1)
+                        if len(parts) == 2:
+                            bucket_name, blob_name = parts
+                            bucket = storage_client.bucket(bucket_name)
+                            blob = bucket.blob(blob_name)
+                            credentials = get_impersonated_credentials()
+                            media_url = blob.generate_signed_url(
+                                version="v4",
+                                credentials=credentials,
+                                expiration=timedelta(days=7),
+                                method="GET",
+                            )
+                        else:
+                            # Malformed gs uri, fallback to public url
+                            media_url = convert_storage_path(media_url, 'public_url')
+                    else:
+                        # Already an https url; keep as is
+                        media_url = convert_storage_path(media_url, 'public_url')
+                except Exception as e:
+                    logger.error(f"Failed to sign media URL for chat history: {e}")
+                    media_url = convert_storage_path(media_url, 'public_url')
+
+            messages.append(
+                ChatMessage(
+                    messageId=row['id'],
+                    role=row['role'],
+                    content=row['content'].strip(),
+                    timestamp=row['timestamp'],
+                    media_type=row['media_type'],
+                    media_url=media_url
+                )
             )
-            for row in rows
-        ]
         return messages
     except Exception as e:
         logger.error(f"Database error: {e}")

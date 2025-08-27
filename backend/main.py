@@ -6,6 +6,7 @@ from svix.webhooks import Webhook, WebhookVerificationError
 from .routers import raven
 from .database import init_db, close_db, get_db
 from .pymodels import *
+from .services.system_service import system_service
 import os
 from dotenv import load_dotenv
 import asyncpg
@@ -148,6 +149,8 @@ async def startup():
     await init_db(app)
     # Use the shared pool initialized on app.state for table creation
     await create_tables(app.state.db_pool)
+    # Preload system instruction
+    await system_service.get_system_instruction()
 
 @app.on_event("shutdown")
 async def shutdown():

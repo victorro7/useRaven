@@ -372,7 +372,8 @@ class MessageHistoryService:
 
     @staticmethod
     async def format_conversation_for_model(
-        messages: List[FormattedChatMessage]
+        messages: List[FormattedChatMessage],
+        allowed_gs_uris: Optional[set] = None,
     ) -> Tuple[str, List]:
         """
         Format a list of messages into a prompt string and media parts for the model.
@@ -401,6 +402,11 @@ class MessageHistoryService:
                             gs_uri = convert_storage_path(part.text, 'gs_uri')
                             logger.debug("Adding media to history - converted to gs://")
                             
+                            # Intelligent media inclusion: skip if not allowed
+                            if allowed_gs_uris is not None and gs_uri not in allowed_gs_uris:
+                                logger.debug("Skipping media not referenced/allowed by latest user text")
+                                continue
+
                             # Create media part with retry for upload timing
                             logger.debug(f"Creating Part for {part.type}")
                             
