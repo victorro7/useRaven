@@ -24,6 +24,7 @@ if not webhook_secret:
 # --- CORS ---
 origins = [
     "https://useraven.app",
+    "https://www.useraven.app",
     "http://localhost:3000",
 ]
 app.add_middleware(

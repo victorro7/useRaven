@@ -15,6 +15,7 @@ CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 # Define your allowed origins (replace with your frontend URL)
 origins = [
     "https://useraven.app",
+    "https://www.useraven.app",
     "http://localhost:3000",
 ]
 
