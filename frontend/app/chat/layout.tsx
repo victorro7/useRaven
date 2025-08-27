@@ -22,7 +22,7 @@ export default function RavenLayout({ children }: LayoutProps) {
     const [isMobile, setIsMobile] = useState(false);
     const { selectedChatId } = useChatState();
     const { chats, createNewChat, deleteChat, renameChat, fetchChats } = useChats();
-    const {loadChatMessages} = useChatMessages();
+    const { messages, loadChatMessages } = useChatMessages();
 
     // --- COMBINED INITIAL LOAD AND CHAT LOADING ---
     useEffect(() => {
@@ -47,6 +47,13 @@ export default function RavenLayout({ children }: LayoutProps) {
         return () => window.removeEventListener('resize', handleResize);
     }, []); // Empty dependency array for mount/unmount
 
+    // Load current chat messages in this layout so we can determine emptiness
+    useEffect(() => {
+        if (selectedChatId) {
+            loadChatMessages(selectedChatId);
+        }
+    }, [selectedChatId, loadChatMessages]);
+
     if (!isLoaded || !isSignedIn) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -55,11 +62,8 @@ export default function RavenLayout({ children }: LayoutProps) {
         );
     }
 
-    const disableNewChatButton = false;
-    // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
-    //  (!selectedChatId && chats.length == 0);
-    // const disableNewChatButton = (selectedChatId && messages.length === 0) || // Disable if in a chat AND no messages
-    //(!selectedChatId && chats.length == 0);// Disable if not in a chat AND chats exist
+    // Disable creating a new chat when the current chat has no messages
+    const disableNewChatButton = Boolean(selectedChatId) && messages.length === 0;
 
     if (isMobile) {
         return (

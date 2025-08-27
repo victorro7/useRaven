@@ -1,27 +1,23 @@
 // app/raven/page.tsx
 "use client"
 import React from 'react';
+import { useUser } from '@clerk/nextjs';
 import { TypewriterEffectSmooth } from "@/app/(components)/ui/typewriter-effect";
 import { BackgroundBeams } from "@/app/(components)/ui/background-beams";
 
 export default function Home() {
+  const { user } = useUser();
+  const userName = user?.firstName || '';
   const words = [
     {
-      text: "Hey",
+      text: `Hey${userName ? ',' : ''}`,
       className:"text-2xl sm:text-4xl font-medium text-transparent text-white"
     },
     {
       text: "Welcome",
       className:"text-2xl sm:text-4xl font-medium text-transparent text-white"
     },
-    {
-      text: "To",
-      className:"text-2xl sm:text-4xl font-medium text-transparent text-white"
-    },
-    {
-      text: "Raven.",
-      className:"text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]"
-    },
+    ...(userName ? [{ text: userName, className:"text-2xl sm:text-4xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-[#6ee1fc] to-[#fc5efc]" }] : []),
   ];
 
   return (

@@ -98,8 +98,10 @@ export function ChatSidebar({ chats, createNewChat, deleteChat, renameChat, sele
             {/* New Chat Button */}
             <button
               disabled={disableNewChatButton}
+              aria-disabled={disableNewChatButton}
+              title={disableNewChatButton ? 'Send a message in the current chat to create a new one' : 'Create a new chat'}
               onClick={createNewChat}
-              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700 transition"
+              className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700 transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               <IconPlus className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
               <span className="text-sm text-black">New Chat</span>
