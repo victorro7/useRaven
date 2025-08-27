@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from ..pymodels import ChatRequest
 from .message_service import MessageHistoryService
 from .token_service import TokenService
+from .media_service import MediaInclusionService, MediaInclusionConfig
 
 def load_text_from_file(filename):
     try:
@@ -193,8 +194,16 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
             all_messages = history_messages + new_user_messages
             logger.debug(f"Total context messages={len(all_messages)} history_tokens={history_tokens}")
             
-            # Format the combined conversation for the model
-            prompt, media_parts = await MessageHistoryService.format_conversation_for_model(all_messages)
+            # Format the combined conversation for the model (text + raw media parts)
+            prompt, raw_media_parts = await MessageHistoryService.format_conversation_for_model(all_messages)
+            
+            # Intelligent media inclusion: filter media based on latest user references
+            media_selector = MediaInclusionService(MediaInclusionConfig())
+            latest_user_msg = new_user_messages[0] if new_user_messages else None
+            allowed_urls = media_selector.get_allowed_media_urls(latest_user_msg, history_messages)
+            
+            # Keep only allowed media
+            media_parts = [p for p in raw_media_parts if getattr(p, 'file_uri', None) in allowed_urls]
             logger.debug(f"Prompt chars={len(prompt)} media_parts={len(media_parts)}")
             
         response_text = ""
