@@ -2,6 +2,7 @@
 import asyncio
 import json
 import os
+import logging
 import uuid
 from typing import AsyncGenerator, List, Tuple, Union
 from uuid import uuid4
@@ -16,6 +17,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from ..pymodels import ChatRequest
 from .message_service import MessageHistoryService
+from .token_service import TokenService
 
 def load_text_from_file(filename):
     try:
@@ -37,9 +39,18 @@ project_ID = os.getenv("PROJECT_ID", "careful-aleph-452520-k9")
 location = os.getenv("LOCATION", "us-central1")
 chat_window_size = int(os.getenv("CHAT_WINDOW_SIZE", "20"))  # Default to last 20 messages
 
+# Token-aware settings  
+max_context_tokens = int(os.getenv("MAX_CONTEXT_TOKENS", "8000"))
+target_window_tokens = int(os.getenv("TARGET_WINDOW_TOKENS", "6000"))
+
+# Initialize token service
+token_service = TokenService()
+
 # Always use Vertex AI with ADC/service account
 client = genai.Client(vertexai=True, project=project_ID, location=location)
-print("Using Vertex AI (project/location)")
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logger = logging.getLogger(__name__)
+logger.info("Using Vertex AI (project/location)")
 
 # Define system instruction
 model_name = "gemini-2.5-flash"
@@ -54,7 +65,7 @@ async def _prepare_contents(chat_request: ChatRequest) -> Tuple[str, List[types.
     - Text is always concatenated into a single string
     - Non text entries (image/video/audio/pdf/etc.) are converted to types.Part via URI.
     """
-    print("DEBUG: Starting _prepare_contents")
+    logger.debug("Starting _prepare_contents")
     prompt_lines: List[str] = []
     media_parts: List[types.Part] = []
 
@@ -68,32 +79,31 @@ async def _prepare_contents(chat_request: ChatRequest) -> Tuple[str, List[types.
                     try:
                         # Convert to gsutil URI format (gs://) for model consumption
                         gs_uri = convert_storage_path(part.text, 'gs_uri')
-                        print(f"Original URL: {part.text}")
-                        print(f"Converted to gs:// URI: {gs_uri}")
+                        logger.debug("Converted media URL to gs:// URI")
                         
                         try:
                             # Use explicit keyword-only args expected by SDK
                             media_part = types.Part.from_uri(file_uri=gs_uri, mime_type=part.mimeType)
-                            print(f"Created Part object with URI: {gs_uri}")
+                            logger.debug("Created Part object from gs:// URI")
                             media_parts.append(media_part)
                         except Exception as inner_e:
-                            print(f"ERROR creating Part from gs:// URI: {inner_e}")
+                            logger.warning(f"Part.from_uri(gs://) failed: {inner_e}")
                             
                             # Try with public URL instead of gs://
                             try:
                                 public_url = convert_storage_path(part.text, 'public_url')
-                                print(f"Trying with public URL instead: {public_url}")
+                                logger.debug("Retrying Part.from_uri with public URL")
                                 media_part = types.Part.from_uri(file_uri=public_url, mime_type=part.mimeType)
-                                print(f"Successfully created Part with public URL")
+                                logger.debug("Created Part from public URL")
                                 media_parts.append(media_part)
                             except Exception as public_url_error:
-                                print(f"ERROR creating Part from public URL: {public_url_error}")
+                                logger.error(f"Part.from_uri(public_url) failed: {public_url_error}")
                                 # Both gs:// and public URL failed, fall back to text
                                 raise
                         
                     except Exception as e:
                         # Fallback: include as text reference if all Part creation fails
-                        print(f"All attempts to create media Part failed: {e}")
+                        logger.error(f"All attempts to create media Part failed: {e}")
                         clean_url = convert_storage_path(part.text, 'public_url')  # Use public URL in fallback text
                         prompt_lines.append(f"{message.role.upper()}: MEDIA({part.mimeType}): {clean_url}")
 
@@ -106,20 +116,20 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
 
     contents may be a plain string, or a list mixing the prompt string and media Parts.
     """
-    print("DEBUG: Starting _generate_stream")
+    logger.debug("Starting _generate_stream")
     
     # Log contents structure
     if isinstance(contents, str):
-        print(f"DEBUG: Contents is a string: {contents[:100]}...")
+        logger.debug("Contents is a string")
     elif isinstance(contents, list):
-        print(f"DEBUG: Contents is a list with {len(contents)} items")
+        logger.debug(f"Contents is a list with {len(contents)} items")
         if len(contents) > 0 and isinstance(contents[0], str):
-            print(f"DEBUG: First item is prompt text: {contents[0][:100]}...")
+            logger.debug("First item is prompt text")
         
         # Log all media parts in the contents (types.Part does not expose uri)
         for i, item in enumerate(contents):
             if i > 0:  # Skip the first item which is the prompt text
-                print(f"DEBUG: _generate_stream - Item {i} type: {type(item)}")
+                logger.debug(f"_generate_stream item type: {type(item)}")
     
     try:
         # Configure Gemini with system instruction
@@ -135,7 +145,7 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
             config=generation_config,
         ):
             if await request.is_disconnected():
-                print("Client disconnected")
+                logger.info("Client disconnected")
                 return
                 
             # Some chunks may have empty text; skip those
@@ -143,7 +153,7 @@ async def _generate_stream(contents: Union[str, List[Union[str, types.Part]]], r
                 yield json.dumps({"response": chunk.text}) + "\n"
             await asyncio.sleep(0)
     except Exception as e:
-        print(f"Error in Gemini streaming: {e}")
+        logger.error(f"Error in Gemini streaming: {e}")
         yield json.dumps({"error": str(e)}) + "\n"
 
 async def generate_stream(pool, chat_request: ChatRequest, request: Request, chat_id: str, user_id: str) -> AsyncGenerator[str, None]:
@@ -151,51 +161,41 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
     Uses server-side windowing to include the last N messages from database plus the current user message.
     """
     try:
-        print("DEBUG: Starting generate_stream with server-side windowing")
+        logger.debug("Starting generate_stream with server-side windowing")
         
         # Get a database connection for fetching history
         async with pool.acquire() as db:
-            # Fetch recent message history from database (excluding the latest message we just saved)
-            print(f"DEBUG: Fetching last {chat_window_size} messages from database (excluding most recent)")
-            history_messages = await MessageHistoryService.get_recent_messages(
-                db, chat_id, user_id, limit=chat_window_size, exclude_latest=1  # Exclude the message we just saved
+            # Use summary-aware message retrieval (falls back to token-aware windowing)
+            logger.debug(f"Fetching history with summary support. budget={target_window_tokens}")
+            history_messages, history_tokens = await MessageHistoryService.get_messages_with_summary(
+                db, chat_id, user_id, max_tokens=target_window_tokens
             )
-            print(f"DEBUG: Retrieved {len(history_messages)} messages from history")
-            for i, msg in enumerate(history_messages):
-                print(f"DEBUG: History[{i}] - Role: {msg.role}, Parts: {len(msg.parts)}")
-                for j, part in enumerate(msg.parts):
-                    content_preview = part.text[:50] + "..." if part.text and len(part.text) > 50 else part.text
-                    print(f"DEBUG:   Part[{j}] - Type: {part.type}, Content: {content_preview}")
+            logger.debug(f"History fetched messages={len(history_messages)} tokens={history_tokens}")
             
             # Extract ONLY the new user message (ignore any history client sent)
-            print(f"DEBUG: Client sent {len(chat_request.messages)} total messages")
+            logger.debug(f"Client sent messages={len(chat_request.messages)}")
             new_user_messages = []
             if chat_request.messages:
                 # Get the very last message from client - this should be the new one
                 latest_client_message = chat_request.messages[-1]
-                print(f"DEBUG: Latest client message role: {latest_client_message.role}")
-                print(f"DEBUG: Latest client message parts: {len(latest_client_message.parts)}")
-                for j, part in enumerate(latest_client_message.parts):
-                    content_preview = part.text[:50] + "..." if part.text and len(part.text) > 50 else part.text
-                    print(f"DEBUG:   New Part[{j}] - Type: {part.type}, Content: {content_preview}")
+                logger.debug(f"Latest client message role={latest_client_message.role} parts={len(latest_client_message.parts)}")
                 
                 # Only include if it's a user message (not assistant)
                 if latest_client_message.role == "user":
                     new_user_messages = [latest_client_message]
-                    print(f"DEBUG: Extracted new user message")
+                    logger.debug("Extracted new user message")
                 else:
-                    print(f"DEBUG: Skipping non-user message from client")
+                    logger.debug("Skipping non-user message from client")
             
-            print(f"DEBUG: New user messages count: {len(new_user_messages)}")
+            logger.debug(f"New user messages count={len(new_user_messages)}")
             
             # Combine history with ONLY the new message
             all_messages = history_messages + new_user_messages
-            print(f"DEBUG: Total messages for model context: {len(all_messages)}")
+            logger.debug(f"Total context messages={len(all_messages)} history_tokens={history_tokens}")
             
             # Format the combined conversation for the model
             prompt, media_parts = await MessageHistoryService.format_conversation_for_model(all_messages)
-            print(f"DEBUG: Formatted prompt length: {len(prompt)} chars")
-            print(f"DEBUG: Total media parts: {len(media_parts)}")
+            logger.debug(f"Prompt chars={len(prompt)} media_parts={len(media_parts)}")
             
         response_text = ""
 
@@ -203,8 +203,7 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
         stream_contents: Union[str, List[Union[str, types.Part]]]
         if media_parts:
             stream_contents = [prompt] + media_parts
-            print(f"Sending to model - Text prompt preview: {prompt[:200]}...")
-            print(f"Sending to model - Media parts count: {len(media_parts)}")
+            logger.info(f"Sending to model media_parts={len(media_parts)}")
         else:
             stream_contents = prompt
 
@@ -222,30 +221,39 @@ async def generate_stream(pool, chat_request: ChatRequest, request: Request, cha
         if response_text and chat_id:
             try:
                 async with pool.acquire() as db:
-                    await add_message_to_db(db, chat_id, user_id, "assistant", response_text)
+                    # Count tokens for assistant response
+                    from ..pymodels import FormattedChatMessage, ChatMessagePart
+                    assistant_message = FormattedChatMessage(
+                        role="assistant", 
+                        parts=[ChatMessagePart(text=response_text, type="text", mimeType=None)]
+                    )
+                    response_tokens = await token_service.count_message_tokens(assistant_message)
+                    logger.debug(f"Assistant response tokens={response_tokens}")
+                    
+                    await add_message_to_db(db, chat_id, user_id, "assistant", response_text, token_count=response_tokens)
             except Exception as e:
-                print(f"Error saving assistant response: {e}")
+                logger.error(f"Error saving assistant response: {e}")
 
     except Exception as e:
-        print(f"General error in generate_stream: {e}")
+        logger.error(f"General error in generate_stream: {e}")
         yield json.dumps({"error": str(e)}) + "\n"
 
-async def add_message_to_db(db, chat_id, user_id, role, content, media_type=None, media_url=None):
-    """Helper function to add a single message to the database"""
+async def add_message_to_db(db, chat_id, user_id, role, content, media_type=None, media_url=None, token_count=0):
+    """Helper function to add a single message to the database with token count"""
     message_id = str(uuid.uuid4())
     try:
         await db.execute('''
-            INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url)
-            VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)
-        ''', message_id, chat_id, user_id, role, content or "", media_type, media_url)
-        print(f"Message {message_id} inserted successfully.")
+            INSERT INTO raven_messages (id, chat_id, user_id, role, content, timestamp, media_type, media_url, token_count)
+            VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8)
+        ''', message_id, chat_id, user_id, role, content or "", media_type, media_url, token_count)
+        logger.debug(f"Message {message_id} inserted with {token_count} tokens")
         return message_id
     except Exception as e:
-        print(f"Error inserting message {message_id}: {e}")
+        logger.error(f"Error inserting message {message_id}: {e}")
         return None
 
 async def add_messages_to_db(db, chat_requests, chat_id, user_id):
-    """Processes and adds messages from chat requests to the database"""
+    """Processes and adds messages from chat requests to the database with token counting"""
     if not isinstance(chat_requests, list):
         chat_requests = [chat_requests]
 
@@ -255,18 +263,26 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
 
         for message in messages_to_add:
             role = message.role
-            content = ""
             
-            # First process text parts to build content
+            # Count tokens for the entire message (including media)
+            try:
+                message_tokens = await token_service.count_message_tokens(message)
+                logger.debug(f"Calculated {message_tokens} tokens for {role} message")
+            except Exception as e:
+                logger.warning(f"Error counting tokens for message: {e}")
+                message_tokens = 0
+            
+            # Process text content
+            content = ""
             for part in message.parts:
                 if part.type == 'text':
                     content += part.text if part.text else ""
             
             # Save text content if available
             if content.strip():
-                await add_message_to_db(db, chat_id, user_id, role, content)
+                await add_message_to_db(db, chat_id, user_id, role, content, token_count=message_tokens)
             
-            # Then process media parts separately
+            # Process media parts separately (tokens already counted above)
             for part in message.parts:
                 if part.type != 'text':
                     media_type = part.mimeType
@@ -274,7 +290,9 @@ async def add_messages_to_db(db, chat_requests, chat_id, user_id):
                     if media_url:
                         # Store the clean public URL in the database
                         public_url = convert_storage_path(media_url, 'public_url')
-                        await add_message_to_db(db, chat_id, user_id, role, "", media_type, public_url)
+                        # Only store tokens for media-only messages (when no text content)
+                        media_tokens = message_tokens if not content.strip() else 0
+                        await add_message_to_db(db, chat_id, user_id, role, "", media_type, public_url, token_count=media_tokens)
 
 def get_last_messages(chat_messages):
     if not chat_messages:

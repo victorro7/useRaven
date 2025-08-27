@@ -15,10 +15,12 @@ from uuid import uuid4
 from datetime import timedelta
 from google.auth import compute_engine
 import json
+import logging
 
 from google.oauth2 import service_account
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # --- Google Cloud Storage Setup ---
 storage_client = storage.Client()
@@ -74,7 +76,7 @@ async def create_upload_url(request_body: PresignedUrlRequest, user_id: str = De
         return PresignedUrlResponse(url=url, gcs_url=download_url)
 
     except Exception as e:
-        print(f"Error generating presigned URL: {e}")
+        logger.error(f"Error generating presigned URL: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate upload URL")
 
 @router.post("/api/chats/create", response_model=ChatCreateResponse)
@@ -92,7 +94,7 @@ async def create_chat(chat_create_request: ChatCreateRequest, user_id: str = Dep
         ''', chat_id, user_id, "New Chat")
         return ChatCreateResponse(chat_id=chat_id)
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create chat: {e}")
 
 @router.get("/api/chats", response_model=List[Chat])
@@ -103,7 +105,7 @@ async def get_chats(user_id: str = Depends(get_current_user), db: asyncpg.Connec
         chats = [Chat(chatId=row['id'], userId=row['user_id'], title=row['title'], createdAt=row['created_at']) for row in rows] # Use a list comprehension
         return chats
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve chats: {e}")
 
 @router.get("/api/chats/{chat_id}", response_model=List[ChatMessage])
@@ -135,7 +137,7 @@ async def get_chat_messages(chat_id: str, user_id: str = Depends(get_current_use
         ]
         return messages
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve messages: {e}")
 
 @router.patch("/api/chats/{chat_id}")  # Use PATCH for partial updates
@@ -151,7 +153,7 @@ async def rename_chat(chat_id: str, request_body: ChatRenameRequest, user_id: st
         return {"message": "Chat renamed successfully"}
 
     except Exception as e:
-        print(f"Database error: {e}")
+        logger.error(f"Database error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to rename chat: {e}")
 
 @router.delete("/api/chats/{chat_id}")
@@ -166,17 +168,17 @@ async def delete_chat(chat_id: str, user_id: str = Depends(get_current_user), db
             await db.execute("DELETE FROM raven_chats WHERE id = $1", chat_id)
             return {"message": "Chat deleted successfully"}
         except Exception as e:
-            print(f"Database error: {e}")
+            logger.error(f"Database error: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to delete chat: {e}")
 
 @router.post("/chat")
 async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: str = Depends(get_current_user), pool: asyncpg.Pool = Depends(get_pool)):
-    print(chat_request)
+    # Removed verbose printing of full chat_request to avoid noisy logs
     if(len(chat_request.messages) >= 1):
         try:
             chat_id = chat_request.chatId
         except (IndexError, AttributeError) as e:
-            print(f"Error extracting chat ID: {e}")
+            logger.error(f"Error extracting chat ID: {e}")
             raise HTTPException(status_code=400, detail="Invalid chat history format for existing chat.")
     else:
         chat_creation_request = ChatCreateRequest(user_id=user_id)
@@ -190,5 +192,5 @@ async def chat_endpoint(chat_request: ChatRequest, request: Request, user_id: st
                 await add_messages_to_db(db, chat_request, chat_id, user_id)
         return StreamingResponse(generate_stream(pool, chat_request, request, chat_id, user_id), media_type="text/event-stream")
     except Exception as e:
-        print(f"Database error in chat endpoint: {e}")
+        logger.error(f"Database error in chat endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to insert message: {e}")

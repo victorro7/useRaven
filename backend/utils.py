@@ -16,11 +16,16 @@ def convert_storage_path(input_path, output_format='gs_uri'):
         str: The converted path in the requested format
     """
     # Extract bucket and object path
+    
     bucket_name = None
     object_path = None
     
     # Remove query parameters first (for any URL format)
     clean_path = input_path.split('?')[0] if '?' in input_path else input_path
+    
+    # URL decode the path to handle encoded characters
+    from urllib.parse import unquote
+    clean_path = unquote(clean_path)
     
     # Case 1: gs:// URI
     if clean_path.startswith('gs://'):
@@ -56,10 +61,12 @@ def convert_storage_path(input_path, output_format='gs_uri'):
     
     # Generate output in requested format
     if output_format == 'gs_uri':
-        return f"gs://{bucket_name}/{object_path}"
+        result = f"gs://{bucket_name}/{object_path}"
     elif output_format == 'public_url':
-        return f"https://storage.googleapis.com/{bucket_name}/{object_path}"
+        result = f"https://storage.googleapis.com/{bucket_name}/{object_path}"
     elif output_format == 'clean_url':
-        return clean_path
+        result = clean_path
     else:
-        return input_path
+        result = input_path  # Return original if format not recognized
+    
+    return result
